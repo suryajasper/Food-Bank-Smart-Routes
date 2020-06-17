@@ -1,0 +1,44 @@
+<html>
+<head>
+  <title>Smart Routes</title>
+  <meta charset = "utf-8" name = "viewport" content = "width=device-width, initial-scale=1.0">
+  <link rel = "stylesheet" href= "resources/css/main.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://www.google.com/jsapi"></script>
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class = "center-outside">
+    <div class = "center-div">
+      <button id = "addBank">Add Food Bank</button>
+      <a class = "warehouseAnchor" href = "warehouse.html">Access Main Warehouse</a>
+    </div>
+  </div>
+  <div id = "foodbankDiv">
+  </div>
+  <div class = "centered">
+    <div id = "popup" class = "popup" style = "display: none; background-color: rgb(240, 239, 239);">
+      <div class = "center-outside">
+        <div class = "center-div">
+          <form>
+            Name<input type = "text" id = "name" placeholder = "Food Bank 100" required>
+            <br>
+            Thumbnail<input accept="image/*" class = "inputfile" type = "file" name = "thumbInput" id = "thumbInput" required>
+            <label id = "thumbInLabel" for="thumbInput">Choose an image</label><br>
+            Max storage (in cubic feet)<input type = "number" min = "1" max = "100000" placeholder = "100" id = "maxStorage" required></input><br>
+            Address <input type = "text" placeholder = "1234 Jackson St, San Jose CA" id = "addressIn" required><button id = "preview">Preview</button>
+            <div style = "width: 70vw; height: 40vh;" id="map"></div>
+            <input id = "addBankButton" value = "Add Food Bank" type = "submit"></input>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-database.js"></script>
+  <script src = "resources/js/firebase-functions.js"></script>
+  <script src = "resources/js/main.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM&callback=initMap"></script>
+</body>
+</html>

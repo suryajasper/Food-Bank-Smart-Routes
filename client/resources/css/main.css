@@ -1,0 +1,190 @@
+.center {
+  margin: auto;
+  text-align: center;
+  display: inline-block;
+}
+.centered {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.login-signup-container {
+  text-align: center;
+}
+.login-signup-container a {
+  margin-right: 6px;
+}
+.popup {
+  border: 3px solid black;
+  border-radius: 4px;
+  z-index: 1000;
+}
+.popup * {
+  margin: 11px;
+}
+.center-outside {
+  text-align: center;
+}
+.center-div {
+  display: inline-block;
+  padding: 1em;
+  border-radius:4px;
+}
+.inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+
+.inputfile + label {
+  padding: 6px;
+  border-radius: 3px;
+  font-size: 1.25em;
+  font-weight: 700;
+  color: white;
+  background-color: rgb(70, 170, 77);
+  display: inline-block;
+  cursor: pointer;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+  background-color: rgb(43, 190, 53);
+}
+
+.inputfile:focus + label {
+	outline: 1px dotted #000;
+	outline: -webkit-focus-ring-color auto 5px;
+}
+input {
+  font-size: 15px;
+}
+input[type=text], input[type=password] {
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  background-color: rgb(184, 184, 184);
+  color: black;
+  -webkit-transition: 0.5s;
+}
+input[type=text]:hover, input[type=password]:hover {
+  background-color: rgb(101, 101, 101);
+  color: white;
+  -webkit-transition: 0.5s;
+}
+input[type=number] {
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  background-color: rgb(184, 184, 184);
+  color: black;
+  -webkit-transition: 0.5s;
+}
+input[type=number]:hover {
+  background-color: rgb(101, 101, 101);
+  color: white;
+  -webkit-transition: 0.5s;
+}
+.bank {
+  border: 3px solid black;
+  border-radius: 3px;
+  padding: 6px;
+  margin: 6px;
+  display: inline-block;
+  background-color: rgb(157, 157, 157);
+}
+
+.vertical-center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+.addbutton {
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  background-color: rgb(55, 161, 123);
+  -webkit-transition: 0.4s;
+}
+.addbutton:hover {
+  background-color: rgb(34, 147, 109);
+  -webkit-transition: 0.4s;
+}
+.bankFood {
+  border: 2px solid black;
+  display: table;
+  border-radius: 2px;
+  background: rgb(162, 162, 162);
+  margin: 0px;
+  height: 50px;
+  line-height: 50px;
+  cursor: pointer;
+  width: 100%;
+  -webkit-transition: 0.7s;
+}
+.bankFood:hover {
+  background: rgb(147, 173, 149);
+  -webkit-transition: 0.7s;
+}
+.bankFood * {
+  margin-right: 5px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  display: inline-block;
+}
+.bankFood .vertical {
+  display: table-cell;
+  vertical-align: middle;
+}
+.bankFood img {
+  height: 50px;
+}
+button {
+  padding: 5px;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 15px;
+  background-color: rgb(168, 168, 168);
+}
+a.warehouseAnchor {
+  padding: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  text-decoration: none;
+  color: black;
+  border-radius: 3px;
+  background-color: rgb(168, 168, 168);
+}
+.fill-outer {
+  width: 97vw;
+  background: rgb(173, 173, 173);
+}
+.fill {
+	width:0%;
+	height:10px;
+	background: rgb(242, 86, 86);
+	background-size:0% 100%;
+	background-position:0 100px;
+}
+.loginsignup {
+  border-radius: 3px;
+  background-color: white;
+  text-align: center;
+  padding: 25px;
+}
+.loginsignup * {
+  margin: 7px;
+}
+.loginsignup a {
+  text-align: center;
+}
