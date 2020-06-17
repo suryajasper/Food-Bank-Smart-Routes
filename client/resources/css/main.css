@@ -147,13 +147,27 @@ input[type=number]:hover {
 .bankFood img {
   height: 50px;
 }
-button {
+button:not(.nobuttoncss), input[type=submit] {
+  margin: 5px;
   padding: 5px;
   border: none;
   cursor: pointer;
   border-radius: 3px;
   font-size: 15px;
   background-color: rgb(168, 168, 168);
+}
+button.nobuttoncss {
+  border: none;
+  border-radius: 0px;
+  background-color: rgb(41, 41, 41);
+  color: white;
+  font-size: 4em;
+  cursor: pointer;
+  -webkit-transition: 1s;
+}
+button.nobuttoncss:hover {
+  background-color: rgb(48, 78, 38);
+  -webkit-transition: 1s;
 }
 a.warehouseAnchor {
   padding: 5px;
@@ -187,4 +201,39 @@ a.warehouseAnchor {
 }
 .loginsignup a {
   text-align: center;
+}
+textarea {
+  border-radius: 3px;
+  background-color: rgb(163, 163, 163);
+  border: none;
+  padding: 5px;
+  min-width: 90%;
+  max-width: 90%;
+  -webkit-transition: 0.5s;
+}
+textarea:hover {
+  background-color: rgb(78, 78, 78);
+  color: white;
+  -webkit-transition: 0.5s;
+}
+
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+#deliveryMap {
+  width: 100vw;
+  height: 90vh;
+  cursor: pointer;
 }

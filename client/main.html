@@ -10,25 +10,81 @@
 <body>
   <div class = "center-outside">
     <div class = "center-div">
-      <button id = "addBank">Add Food Bank</button>
-      <a class = "warehouseAnchor" href = "warehouse.html">Access Main Warehouse</a>
+      <div id = "showIfAdmin" style = "display: none;">
+        <button id = "addPatient">Add Patients</button>
+        <button id = "viewPatient">View Patients</button>
+        <button id = "addDeliveryPerson">Add Delivery Personnel</button>
+        <button id = "viewDeliveryPerson">View Delivery Personnel</button>
+        <button id = "routes">Find best routes</button>
+      </div>
     </div>
   </div>
-  <div id = "foodbankDiv">
+  <div id = "deliverStuff" style="display: none;">
+    <button id = "markAsDone" style = "width: 100vw; height: 10vh; display: none;" class = "nobuttoncss">Mark all as done</button>
+    <button id = "giveLocation" style = "width: 100vw; height: 10vh; display: none;" class = "nobuttoncss">Please Confirm your location</button>
+    <div id = "deliveryMap"></div>
+    <div class = "centered"><h1 id = "noDeliveries" style = "display: none;">No Pending Deliveries!</h1></div>
   </div>
   <div class = "centered">
-    <div id = "popup" class = "popup" style = "display: none; background-color: rgb(240, 239, 239);">
+    <div id = "confirmAddress" class = "popup" style = "background-color: rgb(240, 239, 239); display: none;">
+      <div class = "center-outside">
+        <div class = "center-div">
+          <input type="text" id = "confirmAddressIn"></input>
+          <button id= "confirmAddressPreview">Preview</button>
+          <div id = "confirmAddressMap" style = "width: 60vw; height: 40vh;"></div>
+          <button id= "confirmAddressConfirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id = "view" style = "display: none;">
+    <div id = "mapView" style = "width: 95vw; height: 40%"></div>
+    <button id = "removeAll">Remove All</button>
+    <table id = "deliveryTableTable" style = "display: none;">
+      <thead>
+        <th>Email Address</th>
+        <th>Logged In</th>
+        <th>Confirmed Address</th>
+        <th>Completed Deliveries</th>
+        <th>Remove</th>
+      </thead>
+      <tbody id = "deliveryTableBody">
+      </tbody>
+    </table>
+  </div>
+  <div class = "centered">
+    <div id = "addPatientDiv" class = "popup" style = " background-color: rgb(240, 239, 239);">
       <div class = "center-outside">
         <div class = "center-div">
           <form>
-            Name<input type = "text" id = "name" placeholder = "Food Bank 100" required>
+            <h3>Add Patient Addresses</h3>
             <br>
-            Thumbnail<input accept="image/*" class = "inputfile" type = "file" name = "thumbInput" id = "thumbInput" required>
-            <label id = "thumbInLabel" for="thumbInput">Choose an image</label><br>
-            Max storage (in cubic feet)<input type = "number" min = "1" max = "100000" placeholder = "100" id = "maxStorage" required></input><br>
-            Address <input type = "text" placeholder = "1234 Jackson St, San Jose CA" id = "addressIn" required><button id = "preview">Preview</button>
-            <div style = "width: 70vw; height: 40vh;" id="map"></div>
-            <input id = "addBankButton" value = "Add Food Bank" type = "submit"></input>
+            Enter as a list of addresses (each on a new line)
+            <br>
+            <textarea style = "width: 90%;" id = "patientAddresses" placeholder = "784 South Street Hummelstown, PA 17036
+8918 Heather Ave. Shepherdsville, KY 40165"></textarea><br>
+            <b>or</b> if you prefer to store addresses on a spreadsheet, <input accept=".csv" class = "inputfile" type = "file" name = "csvInput" id = "csvInput"></input><label id = "csvLabel" for="csvInput">import a .csv file</label><br>
+            <button id = "preview">Preview Addresses on map</button>
+            <div style = "width: 70vw; height: 40vh; display: none;" id="map"></div>
+            <button class = "cancel">cancel</button><input id = "addBankButton" value = "Add Addresses" type = "submit"></input>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class = "centered">
+    <div id = "deliveryPersonnelPopup" class = "popup" style = " background-color: rgb(240, 239, 239);">
+      <div class = "center-outside">
+        <div class = "center-div">
+          <form>
+            <h3>Add Delivery Personnel email addresses</h3>
+            <br>
+            Enter as a list of email addresses (each on a new line)
+            <br>
+            <textarea style = "width: 90%;" id = "deliveryAddresses" placeholder = "johndoe@gmail.com
+janedoe@yahoo.com"></textarea><br>
+            <b>or</b> if you prefer to store email addresses on a spreadsheet, <input accept=".csv" class = "inputfile" type = "file" id = "csvInputDelivery"></input><label id = "csvLabelDelivery" for="csvInputDelivery">import a .csv file</label><br>
+            <button class = "cancel">cancel</button><input id = "addDeliveryPersonnel" value = "Add Delivery Personnel" type = "submit"></input>
           </form>
         </div>
       </div>
@@ -38,6 +94,7 @@
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-database.js"></script>
   <script src = "resources/js/firebase-functions.js"></script>
+  <script src = "resources/js/papaparse.min.js"></script>
   <script src = "resources/js/main.js"></script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM&callback=initMap"></script>
 </body>
