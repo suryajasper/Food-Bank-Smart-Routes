@@ -3,6 +3,7 @@ initializeFirebase();
 var hidePopups = function() {
   document.getElementById('addPatientDiv').style.display = 'none';
   document.getElementById('deliveryPersonnelPopup').style.display = 'none';
+  //document.getElementById('view').style.display = 'none';
 
   document.getElementById('csvLabelDelivery').innerHTML = 'import a .csv file';
   document.getElementById('csvLabel').innerHTML = 'import a .csv file';
@@ -31,6 +32,17 @@ function createRow(arr) {
   }
 
   return tr;
+}
+
+function btr(bool) {
+  return bool ? 'yes': 'no';
+}
+
+function removeEmptyStrings(arr) {
+  var newArr = [];
+  for (var el of arr) {
+    if (el !== '') newArr.push(el);
+  } return newArr;
 }
 
 function handleAdmin() {
@@ -76,8 +88,8 @@ function handleAdmin() {
         var file = document.getElementById(seq[0]).files[0];
         Papa.parse(file, {complete: function(results) {
           var arr2 = [];
-          for (var row of results.data) {arr2.push(row[0])}
           if (seq[5]) {
+            for (var row of results.data) {arr2.push(row[0])}
             console.log('hi');
             socket.on('coordinatesMultRes', function(locs) {
               locations = [];
@@ -94,6 +106,11 @@ function handleAdmin() {
             });
             socket.emit('getCoordinatesMult', arr2);
           } else {
+            console.log(results.data);
+            for (var row of results.data) {
+              s = removeEmptyStrings(row);
+              arr2.push(s[0] + ':' + s[1]);
+            }
             emails = arr2;
           }
         }});
@@ -104,13 +121,25 @@ function handleAdmin() {
   addListeners([['csvInput', 'csvLabel', 'map', 'patientAddresses', 'preview',true],['csvInputDelivery', 'csvLabelDelivery', 'mapDelivery', 'deliveryAddresses', 'previewDelivery',false]]);
 
   document.getElementById('addDeliveryPersonnel').onclick = function(e) {
+    console.log(emails);
     e.preventDefault();
     if (emails.length === 0) {
       emails = document.getElementById('deliveryAddresses').value.split('\n');
     }
-    socket.emit('addDeliveryPeople', userID, emails);
-    emails = [];
-    hidePopups();
+    var allAddresses = [];
+    for (var i = 0; i < emails.length; i++) {
+      allAddresses.push(emails[i].split(':')[1]);
+    }
+    var update = {};
+    socket.emit('getCoordinatesMult', allAddresses);
+    socket.on('coordinatesMultRes', function(locs) {
+      for (var i = 0; i < emails.length; i++) {
+        update[emails[i].split(':')[0].replaceAll('.', '_period293847293_')] = locs[i];
+      }
+      socket.emit('addDeliveryPeople', userID, update);
+      emails = [];
+      hidePopups();
+    })
   }
 
   for (var cancel of document.getElementsByClassName('cancel')) {
@@ -133,12 +162,34 @@ function handleAdmin() {
 
   document.getElementById('viewDeliveryPerson').onclick = function(e) {
     e.preventDefault();
+    document.getElementById('view').style.display = 'block';
+    document.getElementById('deliveryTableTable').style.display = 'none';
+    document.getElementById('mapView').style.display = 'block';
     socket.emit('getDeliverersInfo', userID);
     socket.on('delivererInfoRes', function(res) {
+      console.log(res);
+      initTheMap(res, 'mapView')
+      /*
       for (var deliverer of Object.keys(res)) {
-        
-      }
+        var button = '<button style = "margin: 0px; background-color: rgb(217, 101, 101)">Remove</button>';
+        var tr = createRow([deliverer, btr(res[deliverer] !== null), btr(res[deliverer] !== null && 'location' in res[deliverer]), btr(!(res[deliverer] !== null && 'pending' in res[deliverer] && Object.keys(res[deliverer].pending).length === 0) && (res[deliverer] !== null && 'pending' in res[deliverer])), button]);
+        document.getElementById('deliveryTableBody').appendChild(tr);
+      }*/
     });
+  }
+  document.getElementById('viewPatient').onclick = function(e) {
+    e.preventDefault();
+    document.getElementById('view').style.display = 'block';
+    document.getElementById('deliveryTableTable').style.display = 'none';
+    socket.emit('getPatients', userID);
+    socket.on('patientRes', function(patients) {
+      document.getElementById('mapView').style.display = 'block';
+      var locs = [];
+      for (var patient of patients) {
+        locs.push(patient.coord);
+      }
+      initTheMap(locs, 'mapView');
+    })
   }
 }
 
@@ -174,6 +225,28 @@ function handleDelivery() {
       document.getElementById('markAsDone').style.display = 'block';
       document.getElementById('noDeliveries').style.display = 'none';
     }
+  })
+}
+
+document.getElementById('routes').onclick = function(e) {
+  e.preventDefault();
+  // get driver locations
+  socket.emit('getDistanceMatrix', userID);
+  socket.on('distanceMatrixRes', function(res) {
+    console.log(res);
+    var times = [];
+    for (var row of res.rows) {
+      var toPush = [];
+      for (var el of row.elements) {
+        toPush.push(el.duration.value);
+      } times.push(toPush);
+    }
+    if (times.length > times[0].length) {
+      alert('too many delivery personnel');
+    } else {
+      
+    }
+    console.log(times);
   })
 }
 

@@ -38,19 +38,19 @@
     </div>
   </div>
   <div id = "view" style = "display: none;">
-    <div id = "mapView" style = "width: 95vw; height: 40%"></div>
     <button id = "removeAll">Remove All</button>
-    <table id = "deliveryTableTable" style = "display: none;">
+    <table id = "deliveryTableTable">
       <thead>
         <th>Email Address</th>
         <th>Logged In</th>
         <th>Confirmed Address</th>
-        <th>Completed Deliveries</th>
+        <th>Has Pending Deliveries</th>
         <th>Remove</th>
       </thead>
       <tbody id = "deliveryTableBody">
       </tbody>
     </table>
+    <div id = "mapView" style = "width: 100vw; height: 70%;"></div>
   </div>
   <div class = "centered">
     <div id = "addPatientDiv" class = "popup" style = " background-color: rgb(240, 239, 239);">
@@ -79,10 +79,10 @@
           <form>
             <h3>Add Delivery Personnel email addresses</h3>
             <br>
-            Enter as a list of email addresses (each on a new line)
+            Enter as a list of email addresses and addresses (each on a new line)
             <br>
-            <textarea style = "width: 90%;" id = "deliveryAddresses" placeholder = "johndoe@gmail.com
-janedoe@yahoo.com"></textarea><br>
+            <textarea style = "width: 90%;" id = "deliveryAddresses" placeholder = "johndoe@gmail.com:265 Devon Dr. Sumter, SC 29150
+janedoe@yahoo.com:31 Brookside Drive Sunnyside, NY 11104"></textarea><br>
             <b>or</b> if you prefer to store email addresses on a spreadsheet, <input accept=".csv" class = "inputfile" type = "file" id = "csvInputDelivery"></input><label id = "csvLabelDelivery" for="csvInputDelivery">import a .csv file</label><br>
             <button class = "cancel">cancel</button><input id = "addDeliveryPersonnel" value = "Add Delivery Personnel" type = "submit"></input>
           </form>

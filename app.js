@@ -113,18 +113,7 @@ io.on('connection', function(socket){
     })
   });
   socket.on('addDeliveryPeople', function(userID, locs) {
-    adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
-      var update = {};
-      if (snapshot.val() === null) {
-        for (var i = 0; i < locs.length; i++) {
-          update[i] = locs[i];
-        } adminInfo.child(userID).child('confirmedUsers').update(update);
-      } else {
-        for (var i = 0; i < locs.length; i++) {
-          update[Object.keys(snapshot.val()).length+i] = locs[i];
-        } adminInfo.child(userID).child('confirmedUsers').update(update);
-      }
-    })
+    adminInfo.child(userID).child('confirmedUsers').update(locs);
   });
   socket.on('removeAllAddresses', function(userID) {
     adminInfo.child(userID).child('patients').remove();
@@ -134,24 +123,7 @@ io.on('connection', function(socket){
   })
   socket.on('getDeliverersInfo', function(userID) {
     adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
-      var emails = Object.values(snapshot.val());
-      deliverInfo.once('value', function(delivererSnapshot) {
-        del = delivererSnapshot.val();
-        var toReturn = {};
-        for (var email of emails) {
-          var foundUser = false;
-          for (var deliver of Object.values(del)) {
-            if (deliverer.email == email) {
-              foundUser = true;
-              toReturn[email] = deliverer;
-              break;
-            }
-          } if (!foundUser) {
-            toReturn[email] = null;
-          }
-        }
-        socket.emit('delivererInfoRes', toReturn);
-      })
+      socket.emit('delivererInfoRes', Object.values(snapshot.val()));
     })
   })
 
@@ -168,6 +140,42 @@ io.on('connection', function(socket){
   })
   socket.on('confirmDeliveryAddress', function(userID, loc) {
     deliverInfo.child(userID).update({location: loc});
+  })
+
+  socket.on('getPatients', function(userID) {
+    adminInfo.child(userID).child('patients').once('value', function(snapshot) {
+      if (snapshot.val() !== null) {
+        socket.emit('patientRes', Object.values(snapshot.val()));
+      }
+    })
+  })
+
+  socket.on('getDistanceMatrix', function(userID) {
+    adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
+      var delivererAddresses = '';
+      for (var address of Object.values(snapshot.val())) {
+        delivererAddresses += address.lat.toString() + ',' + address.lng.toString() + '|';
+      } delivererAddresses = delivererAddresses.substring(0, delivererAddresses.length-1);
+
+      adminInfo.child(userID).child('patients').once('value', function(snapshot) {
+        var patientAddresses = '';
+        for (var addressRaw of Object.values(snapshot.val())) {
+          var address = addressRaw.coord;
+          patientAddresses += address.lat.toString() + ',' + address.lng.toString() + '|';
+        } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
+
+        var req = require('unirest')("GET", 'https://maps.googleapis.com/maps/api/distancematrix/json');
+        req.query({
+          'units': 'imperial',
+          'key': 'AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM',
+          'origins': delivererAddresses,
+          'destinations': patientAddresses
+        });
+        req.end(function(res) {
+          socket.emit('distanceMatrixRes', res.body);
+        })
+      });
+    })
   })
 });
 
