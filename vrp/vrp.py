@@ -1,8 +1,8 @@
-from flask import Flask, escape, request, render_template, make_response, url_for, redirect, jsonify
-import requests
 from __future__ import print_function
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+from flask import Flask, escape, request, render_template, make_response, url_for, redirect, jsonify
+import requests
 
 app = Flask(__name__)
 
