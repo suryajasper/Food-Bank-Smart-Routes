@@ -192,8 +192,14 @@ io.on('connection', function(socket){
     });
   })
 
-  socket.on('vrp', function(distanceMatrix, options) {
-		
+  socket.on('vrp', function(distanceMatrix, _options) {
+		var req = require('unirest')("POST", 'http://35.239.86.72:4003/vrp');
+		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
+		var toSend = {matrix: distanceMatrix, options: _options};
+		req.send(JSON.stringify(toSend));
+		req.then((response) => {
+	    console.log(response.body)
+	  })
 	});
 });
 

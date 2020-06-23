@@ -39,10 +39,10 @@ def print_solution(data, manager, routing, solution):
         max_route_distance = max(route_distance, max_route_distance)
     print('Maximum of the route distances: {}m'.format(max_route_distance))
 
-def main():
+def main(matrix, num_vehicles):
     """Solve the CVRP problem."""
     # Instantiate the data problem.
-    data = create_data_model()
+    data = create_data_model(matrix, num_vehicles)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
@@ -93,6 +93,7 @@ def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
 		print(json)
+        main(json['matrix'], int(json['options']['timelimit']))
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', port=4003)
