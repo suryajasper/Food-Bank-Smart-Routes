@@ -34,6 +34,10 @@ function createRow(arr) {
   return tr;
 }
 
+function dictToArr() {
+
+}
+
 function btr(bool) {
   return bool ? 'yes': 'no';
 }
@@ -162,6 +166,10 @@ function handleAdmin() {
 
   document.getElementById('viewDeliveryPerson').onclick = function(e) {
     e.preventDefault();
+    document.getElementById('removeAll').onclick = function(e) {
+      e.preventDefault();
+      socket.emit('removeAllDeliveryPeople', userID);
+    }
     document.getElementById('view').style.display = 'block';
     document.getElementById('deliveryTableTable').style.display = 'none';
     document.getElementById('mapView').style.display = 'block';
@@ -179,6 +187,10 @@ function handleAdmin() {
   }
   document.getElementById('viewPatient').onclick = function(e) {
     e.preventDefault();
+    document.getElementById('removeAll').onclick = function(e) {
+      e.preventDefault();
+      socket.emit('removeAllAddresses', userID);
+    }
     document.getElementById('view').style.display = 'block';
     document.getElementById('deliveryTableTable').style.display = 'none';
     socket.emit('getPatients', userID);
@@ -230,24 +242,44 @@ function handleDelivery() {
 
 document.getElementById('routes').onclick = function(e) {
   e.preventDefault();
-  // get driver locations
-  socket.emit('getDistanceMatrix', userID);
-  socket.on('distanceMatrixRes', function(res) {
-    console.log(res);
-    var times = [];
-    for (var row of res.rows) {
-      var toPush = [];
-      for (var el of row.elements) {
-        toPush.push(el.duration.value);
-      } times.push(toPush);
-    }
-    if (times.length > times[0].length) {
-      alert('too many delivery personnel');
-    } else {
-      
-    }
-    console.log(times);
-  })
+  document.getElementById('calculatePopup').style.display = 'block';
+  document.getElementById('confirmCalculation').onclick = function(e2){
+    e2.preventDefault();
+    socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
+    socket.on('coordinatesRes', function(start) {
+      socket.emit('getDeliverersInfo', userID);
+      socket.on('delivererInfoRes', function(deliverers) {
+        // get driver locations
+        if (window.localStorage.getItem('times') === null) {
+          socket.emit('getDistanceMatrix', userID, start);
+          socket.on('distanceMatrixRes', function(res) {
+            console.log(res);
+            var times = {0: };
+            for (var destination of res.resourceSets[0].resources[0].results) {
+              if (destination.originIndex in times) {
+                times[destination.originIndex].push(parseFloat(destination.travelDuration));
+              } else {
+                times[destination.originIndex] = [parseFloat(destination.travelDuration)];
+              }
+            } times = Object.values(times);
+            console.log(times);
+            window.localStorage.setItem('times', JSON.stringify(times));
+            socket.emit('vrp', times, {
+              timelimit: document.getElementById('timeLimit').value,
+              delivererCount: deliverers.length
+            });
+          })
+        } else {
+          console.log(JSON.parse(window.localStorage.getItem('times')));
+          socket.emit('vrp', JSON.parse(window.localStorage.getItem('times')), {
+            timelimit: document.getElementById('timeLimit').value,
+            delivererCount: deliverers.length
+          });
+        }
+
+      })
+    })
+  }
 }
 
 hidePopups();

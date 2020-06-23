@@ -13,6 +13,9 @@ var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 4002;
 
+var node_or_tools = require('node_or_tools');
+var util = require('util');
+
 function replaceAll(orig, toReplace, replaceWith) {
   var replaced = orig.replace(toReplace, replaceWith);
   while (replaced.includes(toReplace)) {
@@ -72,7 +75,7 @@ io.on('connection', function(socket){
     })
   });
   socket.on('getCoordinates', function(address) {
-    var req = getCoordinates(address);
+    var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
     req.end(function(res) {
       if (res.error) {console.log(res.error);}
       else {
@@ -84,7 +87,7 @@ io.on('connection', function(socket){
     var unirest = require("unirest");
     var results = addresses.map(function(address) {
       return new Promise(function(resolve, reject) {
-        var req = getCoordinates(address);
+        var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
         req.end(function(res) {resolve(res); });
         return req;
       });
@@ -150,32 +153,89 @@ io.on('connection', function(socket){
     })
   })
 
-  socket.on('getDistanceMatrix', function(userID) {
-    adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
-      var delivererAddresses = '';
-      for (var address of Object.values(snapshot.val())) {
-        delivererAddresses += address.lat.toString() + ',' + address.lng.toString() + '|';
-      } delivererAddresses = delivererAddresses.substring(0, delivererAddresses.length-1);
+  socket.on('getDistanceMatrix', function(userID, start) {
+    adminInfo.child(userID).child('patients').once('value', function(snapshot) {/*
+      var patientAddresses = start.lat.toString() + ',' + start.lng.toString() + '|';
 
-      adminInfo.child(userID).child('patients').once('value', function(snapshot) {
-        var patientAddresses = '';
-        for (var addressRaw of Object.values(snapshot.val())) {
-          var address = addressRaw.coord;
-          patientAddresses += address.lat.toString() + ',' + address.lng.toString() + '|';
-        } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
+      for (var addressRaw of Object.values(snapshot.val())) {
+        var address = addressRaw.coord;
+        patientAddresses += address.lat.toString() + ',' + address.lng.toString() + '|';
+      } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
 
-        var req = require('unirest')("GET", 'https://maps.googleapis.com/maps/api/distancematrix/json');
-        req.query({
-          'units': 'imperial',
-          'key': 'AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM',
-          'origins': delivererAddresses,
-          'destinations': patientAddresses
-        });
-        req.end(function(res) {
-          socket.emit('distanceMatrixRes', res.body);
-        })
+      var req = require('unirest')("GET", 'https://maps.googleapis.com/maps/api/distancematrix/json');
+      req.query({
+        'units': 'imperial',
+        'key': 'AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM',
+        'origins': patientAddresses,
+        'destinations': patientAddresses
       });
-    })
+      req.end(function(res) {
+        socket.emit('distanceMatrixRes', res.body);
+      });*/
+      var patientAddresses = start.lat.toString() + ',' + start.lng.toString() + ';';
+
+      for (var addressRaw of Object.values(snapshot.val())) {
+        var address = addressRaw.coord;
+        patientAddresses += address.lat.toString() + ',' + address.lng.toString() + ';';
+      } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
+
+      var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
+      req.query({
+        'units': 'imperial',
+        'origins': patientAddresses,
+        'destinations': patientAddresses,
+        'travelMode': 'driving'
+      });
+      req.end(function(res) {
+        socket.emit('distanceMatrixRes', res.body);
+      });
+    });
+  })
+
+  socket.on('vrp', function(distanceMatrix, options) {
+    console.log(distanceMatrix);
+    var useless = [], useless1 = [], useless2 = [], empty = [], zeroes = [];
+    for (var i = 0; i < distanceMatrix.length; i++) {
+      var toPush = [], toPush2 = [];
+      for (var j = 0; j < distanceMatrix[i].length; j++) {
+        toPush.push(0);
+        if (i === 0)
+          toPush2.push(0);
+        else
+          toPush2.push(1);
+      }
+      empty.push([]);
+      zeroes.push(0);
+      useless.push(toPush);
+      useless1.push([0, 1000]);
+      useless2.push(toPush2);
+    }
+
+    var vrpSolverOpts = {
+      numNodes: distanceMatrix.length,
+      costs: distanceMatrix,
+      durations: useless,
+      timeWindows: useless1,
+      demands: useless2
+    };
+
+    var VRP = new node_or_tools.VRP(vrpSolverOpts);
+
+    var vrpSearchOpts = {
+      computeTimeLimit: parseInt(options.timelimit),
+      numVehicles: parseInt(options.delivererCount),
+      depotNode: 0,
+      vehicleCapacity: 1000,
+      timeHorizon: 1000,
+      pickups: zeroes,
+      deliveries: zeroes,
+      routeLocks: empty
+    };
+
+    VRP.Solve(vrpSearchOpts, function (err, solution) {
+      if (err) return console.log(err);
+      console.log(util.inspect(solution, {showHidden: false, depth: null}));
+    });
   })
 });
 
