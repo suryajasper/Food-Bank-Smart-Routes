@@ -254,7 +254,8 @@ document.getElementById('routes').onclick = function(e) {
           socket.emit('getDistanceMatrix', userID, start);
           socket.on('distanceMatrixRes', function(res) {
             console.log(res);
-            var times = {0: };
+            var times = {};
+
             for (var destination of res.resourceSets[0].resources[0].results) {
               if (destination.originIndex in times) {
                 times[destination.originIndex].push(parseFloat(destination.travelDuration));

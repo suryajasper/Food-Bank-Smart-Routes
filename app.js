@@ -193,50 +193,8 @@ io.on('connection', function(socket){
   })
 
   socket.on('vrp', function(distanceMatrix, options) {
-    console.log(distanceMatrix);
-    var useless = [], useless1 = [], useless2 = [], empty = [], zeroes = [];
-    for (var i = 0; i < distanceMatrix.length; i++) {
-      var toPush = [], toPush2 = [];
-      for (var j = 0; j < distanceMatrix[i].length; j++) {
-        toPush.push(0);
-        if (i === 0)
-          toPush2.push(0);
-        else
-          toPush2.push(1);
-      }
-      empty.push([]);
-      zeroes.push(0);
-      useless.push(toPush);
-      useless1.push([0, 1000]);
-      useless2.push(toPush2);
-    }
-
-    var vrpSolverOpts = {
-      numNodes: distanceMatrix.length,
-      costs: distanceMatrix,
-      durations: useless,
-      timeWindows: useless1,
-      demands: useless2
-    };
-
-    var VRP = new node_or_tools.VRP(vrpSolverOpts);
-
-    var vrpSearchOpts = {
-      computeTimeLimit: parseInt(options.timelimit),
-      numVehicles: parseInt(options.delivererCount),
-      depotNode: 0,
-      vehicleCapacity: 1000,
-      timeHorizon: 1000,
-      pickups: zeroes,
-      deliveries: zeroes,
-      routeLocks: empty
-    };
-
-    VRP.Solve(vrpSearchOpts, function (err, solution) {
-      if (err) return console.log(err);
-      console.log(util.inspect(solution, {showHidden: false, depth: null}));
-    });
-  })
+		
+	});
 });
 
 http.listen(port, function(){
