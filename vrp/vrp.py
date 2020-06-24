@@ -93,7 +93,8 @@ def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
 		print(json)
-        main(json['matrix'], int(json['options']['timelimit']))
+		main(json['matrix'], int(json['options']['delivererCount']))
+		return {}
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', port=4003)
