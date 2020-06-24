@@ -20,26 +20,28 @@ def create_data_model(matrix, num_vehicles):
     data['depot'] = 0
     return data
 
-def print_solution(data, manager, routing, solution):
+def format_solution(data, manager, routing, solution, addresses):
     """Prints solution on console."""
-    max_route_distance = 0
+    toReturn = []
+    time = []
     for vehicle_id in range(data['num_vehicles']):
+        toAppend = []
         index = routing.Start(vehicle_id)
-        plan_output = 'Route for vehicle {}:\n'.format(vehicle_id)
         route_distance = 0
         while not routing.IsEnd(index):
-            plan_output += ' {} -> '.format(manager.IndexToNode(index))
+            toAppend.append(addresses[manager.IndexToNode(index)])
             previous_index = index
             index = solution.Value(routing.NextVar(index))
             route_distance += routing.GetArcCostForVehicle(
                 previous_index, index, vehicle_id)
-        plan_output += '{}\n'.format(manager.IndexToNode(index))
-        plan_output += 'Distance of the route: {}m\n'.format(route_distance)
-        print(plan_output)
-        max_route_distance = max(route_distance, max_route_distance)
-    print('Maximum of the route distances: {}m'.format(max_route_distance))
+        time.append(route_distance)
+        toReturn.append(toAppend)
+    toReturnFin = {}
+    toReturnFin['routes'] = toReturn
+    toReturnFin['times'] = time
+    return toReturnFin
 
-def main(matrix, num_vehicles):
+def main(matrix, num_vehicles, addresses):
     """Solve the CVRP problem."""
     # Instantiate the data problem.
     data = create_data_model(matrix, num_vehicles)
@@ -86,15 +88,17 @@ def main(matrix, num_vehicles):
 
     # Print solution on console.
     if solution:
-        print_solution(data, manager, routing, solution)
+        return format_solution(data, manager, routing, solution, addresses)
+    else:
+        return {}
 
 @app.route('/vrp',  methods=['POST', 'GET'])
 def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
 		print(json)
-		main(json['matrix'], int(json['options']['delivererCount']))
-		return {}
+        response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'])
+		return response
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', port=4003)

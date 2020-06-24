@@ -41,6 +41,21 @@ admin.initializeApp({
   databaseURL: "https://food-bank-smart.firebaseio.com"
 });
 
+async function writeToSheet(id, sol) {
+	var doc = new GoogleSpreadsheet(id);
+	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
+	var info = await promisify(doc.getInfo)();
+	var sheet = info.worksheets[0];
+
+	for (var i = 0; i < sol.routes.length; i++) {
+		var row = {time: sol.times[i].toString()};
+		for (var j = 0; i < sol.routes[i].length; j++) {
+			row['Dest ' + (j+1).toString()] = sol.routes[i][j];
+		}
+		await promisify(sheet.addRow)(row);
+	}
+}
+
 var database = admin.database();
 var adminInfo = database.ref('adminInfo');
 var deliverInfo = database.ref('deliverInfo');
@@ -195,7 +210,7 @@ io.on('connection', function(socket){
 		req.send(JSON.stringify(toSend));
 		req.then((response) => {
 	    console.log(response.body);
-
+			writeToSheet(_options.spreadsheetid, response.body);
 	  })
 	});
 });
