@@ -1,6 +1,7 @@
 var admin = require('firebase-admin');
 var express = require('express');
 var bodyParser = require('body-parser');
+var {promisify} = require('util');
 var app = express();
 app.use(express.static(__dirname + '/client'));
 app.use((req, res, next) => {
@@ -33,6 +34,7 @@ function getCoordinates(address) {
 }
 
 var serviceAccount = require("/Users/suryajasper2004/Downloads/food-bank-smart-routes-service-account.json");
+var googleDrive_serviceAccount = require("/Users/suryajasper2004/Downloads/googledrivekey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -126,21 +128,11 @@ io.on('connection', function(socket){
   })
   socket.on('getDeliverersInfo', function(userID) {
     adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
-      socket.emit('delivererInfoRes', Object.values(snapshot.val()));
+			if (snapshot.val() !== null)
+      	socket.emit('delivererInfoRes', Object.values(snapshot.val()));
     })
   })
 
-  socket.on('getDeliveries', function(userID) {
-    deliverInfo.child(userID).once('value', function(snapshot) {
-      if ('pending' in snapshot.val() && Object.keys(snapshot.val().pending).length > 0) {
-        socket.emit('deliveryRes', snapshot.val().pending);
-      } else if (!('location' in snapshot.val())) {
-        socket.emit('deliveryRes', 'no address');
-      } else {
-        socket.emit('deliveryRes', null);
-      }
-    })
-  })
   socket.on('confirmDeliveryAddress', function(userID, loc) {
     deliverInfo.child(userID).update({location: loc});
   })
@@ -174,7 +166,9 @@ io.on('connection', function(socket){
       });*/
       var patientAddresses = start.lat.toString() + ',' + start.lng.toString() + ';';
 
+			var formattedAddresses = [];
       for (var addressRaw of Object.values(snapshot.val())) {
+				formattedAddresses.push(addressRaw.address);
         var address = addressRaw.coord;
         patientAddresses += address.lat.toString() + ',' + address.lng.toString() + ';';
       } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
@@ -182,11 +176,13 @@ io.on('connection', function(socket){
       var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
       req.query({
         'units': 'imperial',
+        'key': 'AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R',
         'origins': patientAddresses,
         'destinations': patientAddresses,
         'travelMode': 'driving'
       });
       req.end(function(res) {
+				res.body.formattedAddresses = formattedAddresses;
         socket.emit('distanceMatrixRes', res.body);
       });
     });
@@ -198,7 +194,8 @@ io.on('connection', function(socket){
 		var toSend = {matrix: distanceMatrix, options: _options};
 		req.send(JSON.stringify(toSend));
 		req.then((response) => {
-	    console.log(response.body)
+	    console.log(response.body);
+
 	  })
 	});
 });

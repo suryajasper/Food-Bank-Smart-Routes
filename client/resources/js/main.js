@@ -245,6 +245,7 @@ document.getElementById('routes').onclick = function(e) {
   document.getElementById('calculatePopup').style.display = 'block';
   document.getElementById('confirmCalculation').onclick = function(e2){
     e2.preventDefault();
+    var tempsawe = document.getElementById('depotAddressIn').value;
     socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
     socket.on('coordinatesRes', function(start) {
       socket.emit('getDeliverersInfo', userID);
@@ -255,6 +256,7 @@ document.getElementById('routes').onclick = function(e) {
           socket.on('distanceMatrixRes', function(res) {
             console.log(res);
             var times = {};
+            res.formattedAddresses.unshift(tempsawe);
 
             for (var destination of res.resourceSets[0].resources[0].results) {
               if (destination.originIndex in times) {
@@ -266,8 +268,9 @@ document.getElementById('routes').onclick = function(e) {
             console.log(times);
             window.localStorage.setItem('times', JSON.stringify(times));
             socket.emit('vrp', times, {
-              timelimit: document.getElementById('timeLimit').value,
-              delivererCount: deliverers.length
+              spreadsheetid: document.getElementById('linkToSpreadsheet').value,
+              delivererCount: deliverers.length,
+              formattedAddresses: res.formattedAddresses
             });
           })
         } else {
