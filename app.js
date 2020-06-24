@@ -227,7 +227,6 @@ io.on('connection', function(socket){
 		var toSend = {matrix: distanceMatrix, options: _options};
 		req.send(JSON.stringify(toSend));
 		req.then((response) => {
-	    console.log(response.body);
 			writeToSheet(_options.spreadsheetid, response.body);
 	  })
 	});

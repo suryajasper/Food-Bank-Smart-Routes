@@ -96,7 +96,6 @@ def main(matrix, num_vehicles, addresses):
 def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
-		print(json)
         response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'])
 		return response
 
