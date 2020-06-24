@@ -1,6 +1,7 @@
 var admin = require('firebase-admin');
 var express = require('express');
 var bodyParser = require('body-parser');
+var GoogleSpreadsheet = require('google-spreadsheet');
 var {promisify} = require('util');
 var app = express();
 app.use(express.static(__dirname + '/client'));
@@ -41,19 +42,36 @@ admin.initializeApp({
   databaseURL: "https://food-bank-smart.firebaseio.com"
 });
 
+function maxLength(arr) {
+  var max = 0;
+    for (var subarr of arr) {
+    if (subarr.length > max) {
+      max = subarr.length;
+    }
+  }
+  return max;
+}
+
 async function writeToSheet(id, sol) {
 	var doc = new GoogleSpreadsheet(id);
 	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
-	var info = await promisify(doc.getInfo)();
-	var sheet = info.worksheets[0];
-
-	for (var i = 0; i < sol.routes.length; i++) {
-		var row = {time: sol.times[i].toString()};
-		for (var j = 0; i < sol.routes[i].length; j++) {
-			row['Dest ' + (j+1).toString()] = sol.routes[i][j];
-		}
-		await promisify(sheet.addRow)(row);
+	var _headers = ['Time'];
+	for (var i = 0; i < maxLength(sol.routes); i++) {
+		_headers.push('Destination ' + (i+1).toString());
 	}
+
+	doc.addWorksheet({headers: _headers}, async function(addWorksheetErr, newSheet) {
+	  if (addWorksheetErr) console.error(addWorksheetErr);
+	  else {
+			for (var i = 0; i < sol.routes.length; i++) {
+				var row = {Time: sol.times[i].toString()};
+				for (var j = 0; j < sol.routes[i].length; j++) {
+					row['Destination ' + (j+1).toString()] = sol.routes[i][j];
+				}
+				await promisify(newSheet.addRow)(row);
+			}
+	  }
+	});
 }
 
 var database = admin.database();

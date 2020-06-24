@@ -159,32 +159,6 @@ function handleAdmin() {
     hidePopups();
     document.getElementById('addPatientDiv').style.display = 'block';
   }
-  document.getElementById('addDeliveryPerson').onclick = function(e) {
-    hidePopups();
-    document.getElementById('deliveryPersonnelPopup').style.display = 'block';
-  }
-
-  document.getElementById('viewDeliveryPerson').onclick = function(e) {
-    e.preventDefault();
-    document.getElementById('removeAll').onclick = function(e) {
-      e.preventDefault();
-      socket.emit('removeAllDeliveryPeople', userID);
-    }
-    document.getElementById('view').style.display = 'block';
-    document.getElementById('deliveryTableTable').style.display = 'none';
-    document.getElementById('mapView').style.display = 'block';
-    socket.emit('getDeliverersInfo', userID);
-    socket.on('delivererInfoRes', function(res) {
-      console.log(res);
-      initTheMap(res, 'mapView')
-      /*
-      for (var deliverer of Object.keys(res)) {
-        var button = '<button style = "margin: 0px; background-color: rgb(217, 101, 101)">Remove</button>';
-        var tr = createRow([deliverer, btr(res[deliverer] !== null), btr(res[deliverer] !== null && 'location' in res[deliverer]), btr(!(res[deliverer] !== null && 'pending' in res[deliverer] && Object.keys(res[deliverer].pending).length === 0) && (res[deliverer] !== null && 'pending' in res[deliverer])), button]);
-        document.getElementById('deliveryTableBody').appendChild(tr);
-      }*/
-    });
-  }
   document.getElementById('viewPatient').onclick = function(e) {
     e.preventDefault();
     document.getElementById('removeAll').onclick = function(e) {
@@ -245,42 +219,36 @@ document.getElementById('routes').onclick = function(e) {
   document.getElementById('calculatePopup').style.display = 'block';
   document.getElementById('confirmCalculation').onclick = function(e2){
     e2.preventDefault();
+    document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
+    document.getElementById('confirmCalculation').disabled = true;
     var tempsawe = document.getElementById('depotAddressIn').value;
     socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
     socket.on('coordinatesRes', function(start) {
-      socket.emit('getDeliverersInfo', userID);
-      socket.on('delivererInfoRes', function(deliverers) {
-        // get driver locations
-        if (window.localStorage.getItem('times') === null) {
-          socket.emit('getDistanceMatrix', userID, start);
-          socket.on('distanceMatrixRes', function(res) {
-            console.log(res);
-            var times = {};
-            res.formattedAddresses.unshift(tempsawe);
+      // get driver locations
+      socket.emit('getDistanceMatrix', userID, start);
+      socket.on('distanceMatrixRes', function(res) {
+        console.log(res);
+        var times = {};
+        res.formattedAddresses.unshift(tempsawe);
 
-            for (var destination of res.resourceSets[0].resources[0].results) {
-              if (destination.originIndex in times) {
-                times[destination.originIndex].push(parseFloat(destination.travelDuration));
-              } else {
-                times[destination.originIndex] = [parseFloat(destination.travelDuration)];
-              }
-            } times = Object.values(times);
-            console.log(times);
-            window.localStorage.setItem('times', JSON.stringify(times));
-            socket.emit('vrp', times, {
-              spreadsheetid: document.getElementById('linkToSpreadsheet').value,
-              delivererCount: deliverers.length,
-              formattedAddresses: res.formattedAddresses
-            });
-          })
-        } else {
-          console.log(JSON.parse(window.localStorage.getItem('times')));
-          socket.emit('vrp', JSON.parse(window.localStorage.getItem('times')), {
-            timelimit: document.getElementById('timeLimit').value,
-            delivererCount: deliverers.length
-          });
-        }
-
+        for (var destination of res.resourceSets[0].resources[0].results) {
+          if (destination.originIndex in times) {
+            times[destination.originIndex].push(parseFloat(destination.travelDuration));
+          } else {
+            times[destination.originIndex] = [parseFloat(destination.travelDuration)];
+          }
+        } times = Object.values(times);
+        console.log(times);
+        window.localStorage.setItem('times', JSON.stringify(times));
+        socket.emit('vrp', times, {
+          spreadsheetid: document.getElementById('linkToSpreadsheet').value,
+          delivererCount: parseInt(document.getElementById('numDeliv').value),
+          formattedAddresses: res.formattedAddresses
+        });
+        document.getElementById('calculatePopup').style.display = 'none';
+        document.getElementById('confirmCalculation').innerHTML = 'Calculate';
+        document.getElementById('confirmCalculation').disabled = false;
+        window.alert('Distance Matrix generated. Running algorithm and writing data to spreadsheet...')
       })
     })
   }
