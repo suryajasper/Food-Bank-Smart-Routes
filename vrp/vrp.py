@@ -78,6 +78,18 @@ def main(matrix, num_vehicles, addresses):
     distance_dimension = routing.GetDimensionOrDie(dimension_name)
     distance_dimension.SetGlobalSpanCostCoefficient(100)
 
+    count_dimension_name = 'count'
+    # assume some variable num_nodes holds the total number of nodes
+    routing.AddConstantDimension(
+        1, # increment by one every time
+        num_nodes // num_vehicles + 1,  # max value forces equivalent # of jobs
+        True,  # set count to zero
+        count_dimension_name)
+    count_dimension = routing.GetDimensionOrDie(count_dimension_name)
+    for veh in range(0, num_vehicles):
+        index_end = routing.End(veh)
+        count_dimension.SetCumulVarSoftLowerBound(index_end,2,100000)
+
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = (

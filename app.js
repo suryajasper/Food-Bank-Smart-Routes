@@ -269,11 +269,12 @@ io.on('connection', function(socket){
 		        } howMany++;
 						if (howMany === Math.ceil(locations.length/25)) {
 							howMany = 0;
-							curr++;
+							curr += 25;
 						}
 						return submatrix.body;
 					});
 					console.log('returned');
+					times[0][0] = 0;
 					socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
 				});
 			}

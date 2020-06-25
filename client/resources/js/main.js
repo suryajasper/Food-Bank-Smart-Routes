@@ -219,7 +219,7 @@ document.getElementById('routes').onclick = function(e) {
         console.log(res);
         res.formattedAddresses.unshift(tempsawe);
 
-        console.log(times);
+        console.log(res.times);
         socket.emit('vrp', res.times, {
           spreadsheetid: document.getElementById('linkToSpreadsheet').value,
           delivererCount: parseInt(document.getElementById('numDeliv').value),
