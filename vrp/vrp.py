@@ -12,19 +12,26 @@ SERVER_NAME = 'suryajasper.com'
 def hello_world():
     return 'Hello, World!'
 
-def create_data_model(matrix, num_vehicles):
+def create_data_model(matrix, num_vehicles, max_routes):
     """Stores the data for the problem."""
     data = {}
     data['distance_matrix'] = matrix
     data['num_vehicles'] = num_vehicles
     data['depot'] = 0
+    data['demands'] = [1 for x in range(len(matrix))]
+    data['demands'][0] = 0
+    data['vehicle_capacities'] = [max_routes for veh in range(num_vehicles)]
     return data
 
 def format_solution(data, manager, routing, solution, addresses):
     """Prints solution on console."""
     toReturn = []
     time = []
+    #count_dimension = routing.GetDimensionOrDie('count')
+    print('started formatting')
     for vehicle_id in range(data['num_vehicles']):
+        #index_end = routing.End(vehicle_id)
+        #count_dimension.SetCumulVarSoftLowerBound(index_end,2,100000)
         toAppend = []
         index = routing.Start(vehicle_id)
         route_distance = 0
@@ -39,9 +46,10 @@ def format_solution(data, manager, routing, solution, addresses):
     toReturnFin = {}
     toReturnFin['routes'] = toReturn
     toReturnFin['times'] = time
+    print('done formatting')
     return toReturnFin
 
-def main(matrix, num_vehicles, addresses):
+def main(matrix, num_vehicles, addresses, maxTime):
     """Solve the CVRP problem."""
     # Instantiate the data problem.
     data = create_data_model(matrix, num_vehicles)
@@ -67,31 +75,32 @@ def main(matrix, num_vehicles, addresses):
     # Define cost of each arc.
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-    # Add Distance constraint.
     dimension_name = 'Distance'
+    toMakeTravelDistance = 3000
     routing.AddDimension(
         transit_callback_index,
         0,  # no slack
-        3000,  # vehicle maximum travel distance
+        toMakeTravelDistance,  # vehicle maximum travel distance
         True,  # start cumul to zero
         dimension_name)
     distance_dimension = routing.GetDimensionOrDie(dimension_name)
     distance_dimension.SetGlobalSpanCostCoefficient(100)
 
-    count_dimension_name = 'count'
-    # assume some variable num_nodes holds the total number of nodes
-    routing.AddConstantDimension(
-        1, # increment by one every time
-        num_nodes // num_vehicles + 1,  # max value forces equivalent # of jobs
-        True,  # set count to zero
-        count_dimension_name)
-    count_dimension = routing.GetDimensionOrDie(count_dimension_name)
-    for veh in range(0, num_vehicles):
-        index_end = routing.End(veh)
-        count_dimension.SetCumulVarSoftLowerBound(index_end,2,100000)
+    def demand_callback(from_index):
+        """Returns the demand of the node."""
+        # Convert from routing variable Index to demands NodeIndex.
+        from_node = manager.IndexToNode(from_index)
+        return data['demands'][from_node]
+    demand_callback_index = routing.RegisterUnaryTransitCallback(demand_callback)
+    routing.AddDimensionWithVehicleCapacity(demand_callback_index,
+        0,  # null capacity slack
+        data['vehicle_capacities'],  # vehicle maximum capacities
+        True,  # start cumul to zero
+        'Capacity')
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.time_limit.seconds = 60
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
 
@@ -102,13 +111,14 @@ def main(matrix, num_vehicles, addresses):
     if solution:
         return format_solution(data, manager, routing, solution, addresses)
     else:
-        return {}
+        print('no solution')
+        return {'error': 'no solution'}
 
 @app.route('/vrp',  methods=['POST', 'GET'])
 def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
-        response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'])
+        response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'], json['options']['maxTime'])
 		return response
 
 if __name__ == '__main__':
