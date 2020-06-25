@@ -52,6 +52,35 @@ function maxLength(arr) {
   return max;
 }
 
+function distanceMatrix(locations1, locations2) {
+	var patientAddresses = '';
+	var patientAddresses2 = '';
+
+	//var formattedAddresses = [];
+	//formattedAddresses.push(addressRaw.address);
+	for (var address of locations1) {
+		patientAddresses += address.lat.toString() + ',' + address.lng.toString() + ';';
+	} patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
+	for (var address of locations2) {
+		patientAddresses2 += address.lat.toString() + ',' + address.lng.toString() + ';';
+	} patientAddresses2 = patientAddresses2.substring(0, patientAddresses2.length-1);
+
+	var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
+	req.query({
+		'units': 'imperial',
+		'key': 'AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R',
+		'origins': patientAddresses,
+		'destinations': patientAddresses2,
+		'travelMode': 'driving'
+	});
+
+	return req;
+	/*req.end(function(res) {
+		res.body.formattedAddresses = formattedAddresses;
+		socket.emit('distanceMatrixRes', res.body);
+	});*/
+}
+
 async function writeToSheet(id, sol) {
 	var doc = new GoogleSpreadsheet(id);
 	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
@@ -118,6 +147,9 @@ io.on('connection', function(socket){
       }
     });
   });
+	var reportError = function(msg) {
+		socket.emit('reporterror', msg);
+	}
   socket.on('getCoordinatesMult', function(addresses) {
     var unirest = require("unirest");
     var results = addresses.map(function(address) {
@@ -129,11 +161,24 @@ io.on('connection', function(socket){
     });
     Promise.all(results).then(function(result) {
       var locations = [];
+			var _addresses = [];
+			var s = null;
+			var ind = -1;
       var content = result.map(function(loc) {
-        locations.push(loc.body.results[0].geometry.location);
-        return loc.body;
+				ind++;
+				if (loc.error) {
+					reportError('"' + addresses[ind] + '" is badly formatted and was not added. Please try again.');
+					return null;
+				} else {
+					if (s === null) {
+						s = loc.body.results[0];
+					}
+					locations.push(loc.body.results[0].geometry.location);
+					_addresses.push(addresses[ind]);
+	        return loc.body;
+				}
       });
-      socket.emit('coordinatesMultRes', locations);
+      socket.emit('coordinatesMultRes', locations, _addresses);
     });
   });
   socket.on('addAddresses', function(userID, locs) {
@@ -144,8 +189,9 @@ io.on('connection', function(socket){
           update[i] = locs[i];
         } adminInfo.child(userID).child('patients').update(update);
       } else {
+				var offset = Object.keys(snapshot.val()).length;
         for (var i = 0; i < locs.length; i++) {
-          update[Object.keys(snapshot.val()).length+i] = locs[i];
+          update[offset+i] = locs[i];
         } adminInfo.child(userID).child('patients').update(update);
       }
     })
@@ -171,53 +217,81 @@ io.on('connection', function(socket){
   })
 
   socket.on('getPatients', function(userID) {
-    adminInfo.child(userID).child('patients').once('value', function(snapshot) {
+    adminInfo.child(userID).child('patients').on('value', function(snapshot) {
       if (snapshot.val() !== null) {
-        socket.emit('patientRes', Object.values(snapshot.val()));
+        socket.emit('patientRes', snapshot.val());
       }
     })
   })
 
   socket.on('getDistanceMatrix', function(userID, start) {
-    adminInfo.child(userID).child('patients').once('value', function(snapshot) {/*
-      var patientAddresses = start.lat.toString() + ',' + start.lng.toString() + '|';
-
-      for (var addressRaw of Object.values(snapshot.val())) {
-        var address = addressRaw.coord;
-        patientAddresses += address.lat.toString() + ',' + address.lng.toString() + '|';
-      } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
-
-      var req = require('unirest')("GET", 'https://maps.googleapis.com/maps/api/distancematrix/json');
-      req.query({
-        'units': 'imperial',
-        'key': 'AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM',
-        'origins': patientAddresses,
-        'destinations': patientAddresses
-      });
-      req.end(function(res) {
-        socket.emit('distanceMatrixRes', res.body);
-      });*/
-      var patientAddresses = start.lat.toString() + ',' + start.lng.toString() + ';';
-
+    adminInfo.child(userID).child('patients').once('value', function(snapshot) {
+			var locations = Object.values(snapshot.val());
 			var formattedAddresses = [];
-      for (var addressRaw of Object.values(snapshot.val())) {
-				formattedAddresses.push(addressRaw.address);
-        var address = addressRaw.coord;
-        patientAddresses += address.lat.toString() + ',' + address.lng.toString() + ';';
-      } patientAddresses = patientAddresses.substring(0, patientAddresses.length-1);
+			for (var loc of locations) {
+				formattedAddresses.push(loc.address);
+			}
+			for (var i = 0; i < locations.length; i++) {
+				locations[i] = locations[i].coord;
+			}
+			locations.unshift(start);
 
-      var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
-      req.query({
-        'units': 'imperial',
-        'key': 'AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R',
-        'origins': patientAddresses,
-        'destinations': patientAddresses,
-        'travelMode': 'driving'
-      });
-      req.end(function(res) {
-				res.body.formattedAddresses = formattedAddresses;
-        socket.emit('distanceMatrixRes', res.body);
-      });
+			if (locations.length > 25) {
+				// get pairs
+				var pairs = [];
+				for (var i = 0; i < locations.length; i+= 25) {
+					var firstPart = locations.slice(i, i+25);
+					for (var j = 0; j < locations.length; j+= 25) {
+						var secondPart = locations.slice(j, j+25);
+						pairs.push([firstPart, secondPart]);
+					}
+				}
+
+				var results = pairs.map(function(loc) {
+					return new Promise(function(resolve, reject) {
+						var req = distanceMatrix(loc[0], loc[1]);
+						req.end(function(res) {resolve(res); });
+						return req;
+					});
+				});
+				Promise.all(results).then(function(result) {
+					console.log('started');
+					var times = [];
+					for (var i = 0; i < locations.length; i++) {
+						times.push([]);
+					}
+					var curr = 0;
+					var howMany = 0;
+					var content = result.map(function(submatrix) {
+						var infos = submatrix.body.resourceSets[0].resources[0].results;
+						for (var destination of infos) {
+	            times[destination.originIndex+curr].push(parseFloat(destination.travelDuration));
+		        } howMany++;
+						if (howMany === Math.ceil(locations.length/25)) {
+							howMany = 0;
+							curr++;
+						}
+						return submatrix.body;
+					});
+					console.log('returned');
+					socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
+				});
+			}
+
+			else {
+				var req = distanceMatrix(locations, locations);
+				req.end(function(res) {
+					var times = {};
+					for (var destination of res.body.resourceSets[0].resources[0].results) {
+	          if (destination.originIndex in times) {
+	            times[destination.originIndex].push(parseFloat(destination.travelDuration));
+	          } else {
+	            times[destination.originIndex] = [parseFloat(destination.travelDuration)];
+	          }
+	        } times = Object.values(times);
+					socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
+				})
+			}
     });
   })
 

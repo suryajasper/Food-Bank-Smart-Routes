@@ -1,4 +1,5 @@
 initializeFirebase();
+var socket = io();
 
 var hidePopups = function() {
   document.getElementById('addPatientDiv').style.display = 'none';
@@ -9,6 +10,23 @@ var hidePopups = function() {
   document.getElementById('csvLabel').innerHTML = 'import a .csv file';
 
   document.getElementById('map').style.display = 'none';
+}
+
+function initMapWithInfos(locs, mapname, infos, keys) {
+  console.log(keys);
+  map = new google.maps.Map(
+      document.getElementById(mapname), {zoom: 4, center: locs[0]});
+  var iw = new google.maps.InfoWindow();
+  for (var i = 0; i < locs.length; i++) {
+    var marker = new google.maps.Marker({position: locs[i], map: map});
+    google.maps.event.addListener(marker, 'click', (function(marker, i) {
+      return function() {
+        console.log('clicked on ' + infos[i]);
+        iw.setContent(infos[i]);
+        iw.open(map, marker);
+      }
+    })(marker, i));
+  }
 }
 
 var initTheMap = function(locs, mapname) {
@@ -60,11 +78,11 @@ function handleAdmin() {
           e.preventDefault();
           var addressesRaw = document.getElementById(seq[3]).value.split('\n');
           socket.emit('getCoordinatesMult', addressesRaw);
-          socket.on('coordinatesMultRes', function(locs) {
+          socket.on('coordinatesMultRes', function(locs, cooked) {
             console.log('add Button event');
             locations = [];
             for (var i = 0; i < locs.length; i++) {
-              locations.push({coord: locs[i], address: addressesRaw[i]});
+              locations.push({coord: locs[i], address: cooked[i]});
             }
             console.log(locations);
             socket.emit('addAddresses', userID, locations);
@@ -76,10 +94,10 @@ function handleAdmin() {
           if (document.getElementById(seq[3]).value !== '') {
             e.preventDefault();
             var addressesRaw = document.getElementById(seq[3]).value.split('\n');
-            socket.on('coordinatesMultRes', function(locs) {
+            socket.on('coordinatesMultRes', function(locs, cooked) {
               locations = [];
               for (var i = 0; i < locs.length; i++) {
-                locations.push({coord: locs[i], address: addressesRaw[i]});
+                locations.push({coord: locs[i], address: cooked[i]});
               }
               initTheMap(locs, seq[2]);
             });
@@ -95,10 +113,10 @@ function handleAdmin() {
           if (seq[5]) {
             for (var row of results.data) {arr2.push(row[0])}
             console.log('hi');
-            socket.on('coordinatesMultRes', function(locs) {
+            socket.on('coordinatesMultRes', function(locs, cooked) {
               locations = [];
               for (var i = 0; i < locs.length; i++) {
-                locations.push({coord: locs[i], address: arr2[i]});
+                locations.push({coord: locs[i], address: cooked[i]});
               }
               initTheMap(locs, seq[2]);
               document.getElementById('addBankButton').onclick = function(e) {
@@ -171,47 +189,18 @@ function handleAdmin() {
     socket.on('patientRes', function(patients) {
       document.getElementById('mapView').style.display = 'block';
       var locs = [];
-      for (var patient of patients) {
-        locs.push(patient.coord);
+      var infos = [];
+      var keys = Object.keys(patients);
+      console.log(patients);
+      for (var key of keys) {
+        if (patients[key] !== null) {
+          locs.push(patients[key].coord);
+          infos.push(patients[key].address);
+        }
       }
-      initTheMap(locs, 'mapView');
+      initMapWithInfos(locs, 'mapView', infos, keys);
     })
   }
-}
-
-function handleDelivery() {
-  socket.emit('getDeliveries', userID);
-  socket.on('deliveryRes', function(pendingDeliveries) {
-    document.getElementById('deliverStuff').style.display = 'block';
-    if (pendingDeliveries === null) {
-      document.getElementById('markAsDone').style.display = 'none';
-      document.getElementById('noDeliveries').style.display = 'block';
-    } else if (pendingDeliveries === 'no address' ){
-      document.getElementById('giveLocation').style.display = 'block';
-      document.getElementById('giveLocation').onclick = function(e) {
-        e.preventDefault();
-        document.getElementById('confirmAddress').style.display = 'block';
-        document.getElementById('confirmAddressPreview').onclick = function(e2) {
-          e2.preventDefault();
-          socket.emit('getCoordinates', document.getElementById('confirmAddressIn').value);
-          socket.on('coordinatesRes', function(loc) {
-            initTheMap([loc], 'confirmAddressMap');
-          })
-        }
-        document.getElementById('confirmAddressConfirm').onclick = function(e2) {
-          e2.preventDefault();
-          socket.emit('getCoordinates', document.getElementById('confirmAddressIn').value);
-          socket.on('coordinatesRes', function(loc) {
-            socket.emit('confirmDeliveryAddress', userID, loc);
-            document.getElementById('confirmAddress').style.display = 'none';
-          })
-        }
-      }
-    } else {
-      document.getElementById('markAsDone').style.display = 'block';
-      document.getElementById('noDeliveries').style.display = 'none';
-    }
-  })
 }
 
 document.getElementById('routes').onclick = function(e) {
@@ -228,19 +217,10 @@ document.getElementById('routes').onclick = function(e) {
       socket.emit('getDistanceMatrix', userID, start);
       socket.on('distanceMatrixRes', function(res) {
         console.log(res);
-        var times = {};
         res.formattedAddresses.unshift(tempsawe);
 
-        for (var destination of res.resourceSets[0].resources[0].results) {
-          if (destination.originIndex in times) {
-            times[destination.originIndex].push(parseFloat(destination.travelDuration));
-          } else {
-            times[destination.originIndex] = [parseFloat(destination.travelDuration)];
-          }
-        } times = Object.values(times);
         console.log(times);
-        window.localStorage.setItem('times', JSON.stringify(times));
-        socket.emit('vrp', times, {
+        socket.emit('vrp', res.times, {
           spreadsheetid: document.getElementById('linkToSpreadsheet').value,
           delivererCount: parseInt(document.getElementById('numDeliv').value),
           formattedAddresses: res.formattedAddresses
@@ -248,7 +228,6 @@ document.getElementById('routes').onclick = function(e) {
         document.getElementById('calculatePopup').style.display = 'none';
         document.getElementById('confirmCalculation').innerHTML = 'Calculate';
         document.getElementById('confirmCalculation').disabled = false;
-        window.alert('Distance Matrix generated. Running algorithm and writing data to spreadsheet...')
       })
     })
   }
@@ -265,10 +244,9 @@ firebase.auth().onAuthStateChanged(function(user) {
       document.getElementById('showIfAdmin').style.display = 'block';
       handleAdmin();
     }
-    else {
-      handleDelivery();
-    }
   })
 })
 
-var socket = io();
+socket.on('reporterror', function(msg) {
+  window.alert(msg);
+})
