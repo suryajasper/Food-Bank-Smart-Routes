@@ -220,11 +220,17 @@ document.getElementById('routes').onclick = function(e) {
         res.formattedAddresses.unshift(tempsawe);
 
         console.log(res.times);
-        socket.emit('vrp', res.times, {
+        var opts = {
           spreadsheetid: document.getElementById('linkToSpreadsheet').value,
           delivererCount: parseInt(document.getElementById('numDeliv').value),
           formattedAddresses: res.formattedAddresses
-        });
+        };
+        if (document.getElementById('maxTime').value !== '') {
+          opts.maxTime = parseInt(document.getElementById('maxTime').value);
+        } else {
+          opts.maxTime = -1;
+        }
+        socket.emit('vrp', res.times, opts);
         document.getElementById('calculatePopup').style.display = 'none';
         document.getElementById('confirmCalculation').innerHTML = 'Calculate';
         document.getElementById('confirmCalculation').disabled = false;

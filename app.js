@@ -302,6 +302,9 @@ io.on('connection', function(socket){
 		var toSend = {matrix: distanceMatrix, options: _options};
 		req.send(JSON.stringify(toSend));
 		req.then((response) => {
+			if ('error' in response.body) {
+				console.log(response.body.error);
+			}
 			writeToSheet(_options.spreadsheetid, response.body);
 	  })
 	});
