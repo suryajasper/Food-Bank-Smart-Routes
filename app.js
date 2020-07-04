@@ -34,8 +34,8 @@ function getCoordinates(address) {
   return req;
 }
 
-var serviceAccount = require("/Users/suryajasper2004/Downloads/food-bank-smart-routes-service-account.json");
-var googleDrive_serviceAccount = require("/Users/suryajasper2004/Downloads/googledrivekey.json");
+var serviceAccount = require("../secret/food-bank-smart-routes-service-account.json");
+var googleDrive_serviceAccount = require("../secret/googledrivekey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -166,12 +166,18 @@ io.on('connection', function(socket){
 			var ind = -1;
       var content = result.map(function(loc) {
 				ind++;
-				if (loc.error) {
-					reportError('"' + addresses[ind] + '" is badly formatted and was not added. Please try again.');
+				if (loc.error || loc.body.status === 'ZERO_RESULTS') {
+					if (loc.error)
+						reportError('"' + addresses[ind] + '" is badly formatted and was not added. Please try again.');
+					else
+						reportError('"' + addresses[ind] + '" returned no results"');
 					return null;
 				} else {
 					if (s === null) {
 						s = loc.body.results[0];
+					}
+					if (loc.body.results[0] === undefined) {
+						console.log(loc.body);
 					}
 					locations.push(loc.body.results[0].geometry.location);
 					_addresses.push(addresses[ind]);

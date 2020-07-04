@@ -20,11 +20,20 @@ def create_data_model(matrix, num_vehicles, max_routes):
     data['depot'] = 0
     data['demands'] = [1 for x in range(len(matrix))]
     data['demands'][0] = 0
-    data['vehicle_capacities'] = [max_routes for veh in range(num_vehicles)]
+    #data['vehicle_capacities'] = [max_routes for veh in range(num_vehicles)]
     return data
 
 def format_solution(data, manager, routing, solution, addresses):
     """Prints solution on console."""
+    '''penalties'''
+    dropped_nodes = 'Dropped nodes:'
+    for node in range(routing.Size()):
+        if routing.IsStart(node) or routing.IsEnd(node):
+            continue
+        if assignment.Value(routing.NextVar(node)) == node:
+            dropped_nodes += ' {}'.format(manager.IndexToNode(node))
+    print(dropped_nodes)
+
     toReturn = []
     time = []
     #count_dimension = routing.GetDimensionOrDie('count')
@@ -52,7 +61,7 @@ def format_solution(data, manager, routing, solution, addresses):
 def main(matrix, num_vehicles, addresses, maxTime):
     """Solve the CVRP problem."""
     # Instantiate the data problem.
-    data = create_data_model(matrix, num_vehicles)
+    data = create_data_model(matrix, num_vehicles, maxTime)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
@@ -76,10 +85,10 @@ def main(matrix, num_vehicles, addresses, maxTime):
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
     dimension_name = 'Distance'
-    toMakeTravelDistance = 3000
+    toMakeTravelDistance = maxTime
     routing.AddDimension(
         transit_callback_index,
-        0,  # no slack
+        5,  # no slack
         toMakeTravelDistance,  # vehicle maximum travel distance
         True,  # start cumul to zero
         dimension_name)
@@ -91,16 +100,22 @@ def main(matrix, num_vehicles, addresses, maxTime):
         # Convert from routing variable Index to demands NodeIndex.
         from_node = manager.IndexToNode(from_index)
         return data['demands'][from_node]
+    '''
     demand_callback_index = routing.RegisterUnaryTransitCallback(demand_callback)
     routing.AddDimensionWithVehicleCapacity(demand_callback_index,
         0,  # null capacity slack
         data['vehicle_capacities'],  # vehicle maximum capacities
         True,  # start cumul to zero
         'Capacity')
+    '''
+
+    penalty = 1000
+    for node in range(1, len(data['distance_matrix'])):
+        routing.AddDisjunction([manager.NodeToIndex(node)], penalty)
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-    search_parameters.time_limit.seconds = 60
+    search_parameters.time_limit.seconds = 15
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
 
@@ -118,7 +133,7 @@ def main(matrix, num_vehicles, addresses, maxTime):
 def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
-        response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'], json['options']['maxTime'])
+		response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'], json['options']['maxTime'])
 		return response
 
 if __name__ == '__main__':
