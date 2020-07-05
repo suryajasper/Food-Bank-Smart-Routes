@@ -1,3 +1,6 @@
+:root {
+ --buttonSelectActiveBorderColor: rgb(70, 89, 255);
+}
 .center {
   margin: auto;
   text-align: center;
@@ -242,4 +245,23 @@ tr:nth-child(even) {
 }
 .groupinputs input,h4 {
   display: inline-block;
+}
+
+button.switchNotActive {
+  border-radius: 0px;
+  margin: 0px;
+  border: 2px solid rgb(224, 224, 224);
+  background-color: rgb(224, 224, 224);
+  color: rgb(110, 110, 110);
+}
+
+button.switchActive {
+  border-radius: 0px;
+  margin: 0px;
+  border-top: 2px solid var(--buttonSelectActiveBorderColor);
+  border-right: 2px solid var(--buttonSelectActiveBorderColor);
+  border-left: 2px solid var(--buttonSelectActiveBorderColor);
+  border-bottom: 2px solid rgb(185, 185, 185);
+  background-color: rgb(185, 185, 185);
+  color: var(--buttonSelectActiveBorderColor);
 }

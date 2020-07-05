@@ -20,12 +20,6 @@
       </div>
     </div>
   </div>
-  <div id = "deliverStuff" style="display: none;">
-    <button id = "markAsDone" style = "width: 100vw; height: 10vh; display: none;" class = "nobuttoncss">Mark all as done</button>
-    <button id = "giveLocation" style = "width: 100vw; height: 10vh; display: none;" class = "nobuttoncss">Please Confirm your location</button>
-    <div id = "deliveryMap"></div>
-    <div class = "centered"><h1 id = "noDeliveries" style = "display: none;">No Pending Deliveries!</h1></div>
-  </div>
   <div class = "centered">
     <div id = "confirmAddress" class = "popup" style = "background-color: rgb(240, 239, 239); display: none;">
       <div class = "center-outside">
@@ -38,7 +32,15 @@
       </div>
     </div>
   </div>
-  <div id = "lastMap" style = "display: none; width: 100vw; height: 70%;"></div>
+  <div style = "display: none;" id = "lastCalcBody">
+    <button class = "switchActive" id = "droppedButton">Dropped Locations</button>
+    <button class = "switchNotActive" id = "deliveryRoutesButton">Delivery Routes</button>
+    <div id = "lastMap" style = "display: none; width: 100vw; height: 70%;"></div>
+    <div id = "lastMapRoutes" style = "display: none; width: 100vw; height: 70%;"></div>
+    <div class = "center-outside"><div class = "center-div">
+      <select id="lastSelect" style = "display: none; width: 40vw;"></select>
+    </div></div>
+  </div>
   <div id = "view" style = "display: none;">
     <button id = "removeAll">Remove All</button>
     <div id = "mapView" style = "width: 100vw; height: 70%;"></div>
@@ -58,24 +60,6 @@
             <button id = "preview">Preview Addresses on map</button>
             <div style = "width: 70vw; height: 40vh; display: none;" id="map"></div>
             <button class = "cancel">cancel</button><input id = "addBankButton" value = "Add Addresses" type = "submit"></input>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class = "centered">
-    <div id = "deliveryPersonnelPopup" class = "popup" style = " background-color: rgb(240, 239, 239);">
-      <div class = "center-outside">
-        <div class = "center-div">
-          <form>
-            <h3>Add Delivery Personnel email addresses</h3>
-            <br>
-            Enter as a list of email addresses and addresses (each on a new line)
-            <br>
-            <textarea style = "width: 90%;" id = "deliveryAddresses" placeholder = "johndoe@gmail.com:265 Devon Dr. Sumter, SC 29150
-janedoe@yahoo.com:31 Brookside Drive Sunnyside, NY 11104"></textarea><br>
-            <b>or</b> if you prefer to store email addresses on a spreadsheet, <input accept=".csv" class = "inputfile" type = "file" id = "csvInputDelivery"></input><label id = "csvLabelDelivery" for="csvInputDelivery">import a .csv file</label><br>
-            <button class = "cancel">cancel</button><input id = "addDeliveryPersonnel" value = "Add Delivery Personnel" type = "submit"></input>
           </form>
         </div>
       </div>

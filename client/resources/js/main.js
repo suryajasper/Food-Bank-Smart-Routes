@@ -3,10 +3,7 @@ var socket = io();
 
 var hidePopups = function() {
   document.getElementById('addPatientDiv').style.display = 'none';
-  document.getElementById('deliveryPersonnelPopup').style.display = 'none';
-  //document.getElementById('view').style.display = 'none';
 
-  document.getElementById('csvLabelDelivery').innerHTML = 'import a .csv file';
   document.getElementById('csvLabel').innerHTML = 'import a .csv file';
 
   document.getElementById('map').style.display = 'none';
@@ -15,7 +12,6 @@ var hidePopups = function() {
 }
 
 function initMapWithInfos(locs, mapname, infos, keys) {
-  console.log(keys);
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
   var iw = new google.maps.InfoWindow();
@@ -23,7 +19,6 @@ function initMapWithInfos(locs, mapname, infos, keys) {
     var marker = new google.maps.Marker({position: locs[i], map: map});
     google.maps.event.addListener(marker, 'click', (function(marker, i) {
       return function() {
-        console.log('clicked on ' + infos[i]);
         iw.setContent(infos[i]);
         iw.open(map, marker);
       }
@@ -32,8 +27,6 @@ function initMapWithInfos(locs, mapname, infos, keys) {
 }
 
 function initMapWithColors(locs, mapname, dropped, start) {
-  console.log(locs);
-  console.log(start);
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
   var startmarker = new google.maps.Marker({
@@ -71,55 +64,49 @@ function initMapWithColors(locs, mapname, dropped, start) {
   }
 }
 
-function initMapWithRoutes() {
+function initMapWithRoutes(locs) {
+  console.log(locs);
   var directionsService = new google.maps.DirectionsService();
   var directionsRenderer = new google.maps.DirectionsRenderer();
-  var map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 6,
-    center: { lat: 41.85, lng: -87.65 }
+  var map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
+    zoom: 6
   });
   directionsRenderer.setMap(map);
-
-  document.getElementById("submit").addEventListener("click", function() {
-    calculateAndDisplayRoute(directionsService, directionsRenderer);
+  calculateAndDisplayRoute(directionsService, directionsRenderer, locs);
+}
+function initMapWithMultipleRoutes(locsArr) {
+  var directionsService = new google.maps.DirectionsService();
+  var directionsRenderer = new google.maps.DirectionsRenderer();
+  var map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
+    zoom: 6
   });
+  directionsRenderer.setMap(map);
+  for (var locs of locsArr)
+    calculateAndDisplayRoute(directionsService, directionsRenderer, locs);
 }
 
-function calculateAndDisplayRoute(directionsService, directionsRenderer) {
+function calculateAndDisplayRoute(directionsService, directionsRenderer, locs) {
+  var start = locs[0];
+  var end = locs[locs.length-1];
   var waypts = [];
-  var checkboxArray = document.getElementById("waypoints");
-  for (var i = 0; i < checkboxArray.length; i++) {
-    if (checkboxArray.options[i].selected) {
-      waypts.push({
-        location: checkboxArray[i].value,
-        stopover: true
-      });
-    }
+  for (var i = 1; i < locs.length-1; i++) {
+    waypts.push({
+      location: locs[i],
+      stopover: true
+    });
   }
 
   directionsService.route(
     {
-      origin: document.getElementById("start").value,
-      destination: document.getElementById("end").value,
+      origin: start,
+      destination: end,
       waypoints: waypts,
-      optimizeWaypoints: true,
+      optimizeWaypoints: false,
       travelMode: "DRIVING"
     },
     function(response, status) {
       if (status === "OK") {
         directionsRenderer.setDirections(response);
-        var route = response.routes[0];
-        var summaryPanel = document.getElementById("directions-panel");
-        summaryPanel.innerHTML = "";
-        // For each route, display summary information.
-        for (var i = 0; i < route.legs.length; i++) {
-          var routeSegment = i + 1;
-          summaryPanel.innerHTML +=
-            "<b>Route Segment: " + routeSegment + "</b><br>";
-          summaryPanel.innerHTML += route.legs[i].start_address + " to ";
-          summaryPanel.innerHTML += route.legs[i].end_address + "<br>";
-          summaryPanel.innerHTML += route.legs[i].distance.text + "<br><br>";
-        }
       } else {
         window.alert("Directions request failed due to " + status);
       }
@@ -128,8 +115,6 @@ function calculateAndDisplayRoute(directionsService, directionsRenderer) {
 }
 
 var initTheMap = function(locs, mapname) {
-  console.log(mapname);
-  console.log(locs);
   document.getElementById(mapname).style.display = 'block';
   var map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
@@ -155,10 +140,6 @@ function createRow(arr) {
   return tr;
 }
 
-function dictToArr() {
-
-}
-
 function btr(bool) {
   return bool ? 'yes': 'no';
 }
@@ -168,6 +149,71 @@ function removeEmptyStrings(arr) {
   for (var el of arr) {
     if (el !== '') newArr.push(el);
   } return newArr;
+}
+
+function fillSelect(name, length) {
+  var soption = document.createElement('option');
+  soption.innerHTML = 'all';
+  soption.value = 'all';
+  document.getElementById(name).appendChild(soption);
+  for (var i = 1; i <= length; i++) {
+    var option = document.createElement('option');
+    option.innerHTML = i.toString();
+    option.value = i.toString();
+    document.getElementById(name).appendChild(option);
+  }
+}
+
+function droppedLocations() {
+  document.getElementById('view').style.display = 'none';
+  document.getElementById('lastMapRoutes').style.display = 'none';
+  document.getElementById('lastCalcBody').style.display = 'block';
+  document.getElementById('lastMap').style.display = 'block';
+  document.getElementById('lastSelect').style.display = 'none';
+
+  socket.emit('getPatients', userID);
+  socket.on('patientRes', function(patients) {
+    socket.emit('lastCalc', userID);
+    socket.on('lastCalcRes', function(solution) {
+      initMapWithColors(Object.values(patients), 'lastMap', solution.dropped, solution.start);
+    })
+  })
+}
+
+function deliveryRoutes() {
+  document.getElementById('view').style.display = 'none';
+  document.getElementById('lastMap').style.display = 'none';
+  document.getElementById('lastMapRoutes').style.display = 'block';
+  document.getElementById('lastCalcBody').style.display = 'block';
+  document.getElementById('lastSelect').style.display = 'block';
+  $('#lastSelect').empty();
+  socket.emit('lastCalc', userID);
+  socket.on('lastCalcRes', function(solution) {
+    fillSelect('lastSelect', solution.routes.length);
+    document.getElementById('lastSelect').value = '1';
+    document.getElementById('lastSelect').oninput = function() {
+      if (!isNaN(this.value)) {
+        initMapWithRoutes(solution.routes[parseInt(this.value)]);
+      }
+    }
+    initMapWithRoutes(solution.routes[0]);
+  })
+}
+
+function setSelected(ind) {
+  var div = document.getElementById('lastCalcBody');
+  var sow = 0;
+  for (var i = 0; i < div.children.length; i++) {
+    if (div.children[i].tagName === 'BUTTON') {
+      if (sow === ind) {
+        div.children[i].classList.remove('switchNotActive');
+        div.children[i].classList.add('switchActive');
+      } else {
+        div.children[i].classList.remove('switchActive');
+        div.children[i].classList.add('switchNotActive');
+      } sow++;
+    }
+  }
 }
 
 function handleAdmin() {
@@ -182,12 +228,10 @@ function handleAdmin() {
           var addressesRaw = document.getElementById(seq[3]).value.split('\n');
           socket.emit('getCoordinatesMult', addressesRaw);
           socket.on('coordinatesMultRes', function(locs, cooked) {
-            console.log('add Button event');
             locations = [];
             for (var i = 0; i < locs.length; i++) {
               locations.push({coord: locs[i], address: cooked[i]});
             }
-            console.log(locations);
             socket.emit('addAddresses', userID, locations);
             locations = [];
             hidePopups();
@@ -215,7 +259,6 @@ function handleAdmin() {
           var arr2 = [];
           if (seq[5]) {
             for (var row of results.data) {arr2.push(row[0])}
-            console.log('hi');
             socket.on('coordinatesMultRes', function(locs, cooked) {
               locations = [];
               for (var i = 0; i < locs.length; i++) {
@@ -231,7 +274,6 @@ function handleAdmin() {
             });
             socket.emit('getCoordinatesMult', arr2);
           } else {
-            console.log(results.data);
             for (var row of results.data) {
               s = removeEmptyStrings(row);
               arr2.push(s[0] + ':' + s[1]);
@@ -243,29 +285,7 @@ function handleAdmin() {
     })(seq)
   }
 
-  addListeners([['csvInput', 'csvLabel', 'map', 'patientAddresses', 'preview',true],['csvInputDelivery', 'csvLabelDelivery', 'mapDelivery', 'deliveryAddresses', 'previewDelivery',false]]);
-
-  document.getElementById('addDeliveryPersonnel').onclick = function(e) {
-    console.log(emails);
-    e.preventDefault();
-    if (emails.length === 0) {
-      emails = document.getElementById('deliveryAddresses').value.split('\n');
-    }
-    var allAddresses = [];
-    for (var i = 0; i < emails.length; i++) {
-      allAddresses.push(emails[i].split(':')[1]);
-    }
-    var update = {};
-    socket.emit('getCoordinatesMult', allAddresses);
-    socket.on('coordinatesMultRes', function(locs) {
-      for (var i = 0; i < emails.length; i++) {
-        update[emails[i].split(':')[0].replaceAll('.', '_period293847293_')] = locs[i];
-      }
-      socket.emit('addDeliveryPeople', userID, update);
-      emails = [];
-      hidePopups();
-    })
-  }
+  addListeners([['csvInput', 'csvLabel', 'map', 'patientAddresses', 'preview',true]]);
 
   for (var cancel of document.getElementsByClassName('cancel')) {
     cancel.onclick = function(e) {
@@ -287,15 +307,13 @@ function handleAdmin() {
       socket.emit('removeAllAddresses', userID);
     }
     document.getElementById('view').style.display = 'block';
-    document.getElementById('lastMap').style.display = 'none';
-    document.getElementById('deliveryTableTable').style.display = 'none';
+    document.getElementById('lastCalcBody').style.display = 'none';
     socket.emit('getPatients', userID);
     socket.on('patientRes', function(patients) {
       document.getElementById('mapView').style.display = 'block';
       var locs = [];
       var infos = [];
       var keys = Object.keys(patients);
-      console.log(patients);
       for (var key of keys) {
         if (patients[key] !== null) {
           locs.push(patients[key].coord);
@@ -307,15 +325,18 @@ function handleAdmin() {
   }
   document.getElementById('lastCalc').onclick = function(e) {
     e.preventDefault();
-    document.getElementById('view').style.display = 'none';
-    document.getElementById('lastMap').style.display = 'block';
-    socket.emit('getPatients', userID);
-    socket.on('patientRes', function(patients) {
-      socket.emit('lastCalc', userID);
-      socket.on('lastCalcRes', function(solution) {
-        initMapWithColors(Object.values(patients), 'lastMap', solution.dropped, solution.start);
-      })
-    })
+    droppedLocations();
+    setSelected(0);
+    document.getElementById('droppedButton').onclick = function(e2) {
+      e2.preventDefault();
+      setSelected(0);
+      droppedLocations();
+    }
+    document.getElementById('deliveryRoutesButton').onclick = function(e2) {
+      e2.preventDefault();
+      setSelected(1);
+      deliveryRoutes();
+    }
   }
 }
 
@@ -332,10 +353,7 @@ document.getElementById('routes').onclick = function(e) {
       // get driver locations
       socket.emit('getDistanceMatrix', userID, start);
       socket.on('distanceMatrixRes', function(res) {
-        console.log(res);
         res.formattedAddresses.unshift(tempsawe);
-
-        console.log(res.times);
         var opts = {
           spreadsheetid: convertToSheetId(document.getElementById('linkToSpreadsheet').value),
           delivererCount: parseInt(document.getElementById('numDeliv').value),
