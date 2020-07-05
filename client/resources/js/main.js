@@ -10,6 +10,8 @@ var hidePopups = function() {
   document.getElementById('csvLabel').innerHTML = 'import a .csv file';
 
   document.getElementById('map').style.display = 'none';
+
+  document.getElementById('calculatePopup').style.display = 'none';
 }
 
 function initMapWithInfos(locs, mapname, infos, keys) {
@@ -29,6 +31,102 @@ function initMapWithInfos(locs, mapname, infos, keys) {
   }
 }
 
+function initMapWithColors(locs, mapname, dropped, start) {
+  console.log(locs);
+  console.log(start);
+  map = new google.maps.Map(
+      document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
+  var startmarker = new google.maps.Marker({
+    position: start,
+    icon: {
+      url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+    },
+    map: map
+  });
+  var iw = new google.maps.InfoWindow();
+  for (var i = 0; i < locs.length; i++) {
+    if (dropped.includes(locs[i].address)) {
+      var marker = new google.maps.Marker({
+        position: locs[i].coord,
+        icon: {
+          url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        },
+        map: map
+      });
+    } else {
+      var marker = new google.maps.Marker({
+        position: locs[i].coord,
+        icon: {
+          url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+        },
+        map: map
+      });
+    }
+    google.maps.event.addListener(marker, 'click', (function(marker, i) {
+      return function() {
+        iw.setContent(locs[i].address);
+        iw.open(map, marker);
+      }
+    })(marker, i));
+  }
+}
+
+function initMapWithRoutes() {
+  var directionsService = new google.maps.DirectionsService();
+  var directionsRenderer = new google.maps.DirectionsRenderer();
+  var map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 6,
+    center: { lat: 41.85, lng: -87.65 }
+  });
+  directionsRenderer.setMap(map);
+
+  document.getElementById("submit").addEventListener("click", function() {
+    calculateAndDisplayRoute(directionsService, directionsRenderer);
+  });
+}
+
+function calculateAndDisplayRoute(directionsService, directionsRenderer) {
+  var waypts = [];
+  var checkboxArray = document.getElementById("waypoints");
+  for (var i = 0; i < checkboxArray.length; i++) {
+    if (checkboxArray.options[i].selected) {
+      waypts.push({
+        location: checkboxArray[i].value,
+        stopover: true
+      });
+    }
+  }
+
+  directionsService.route(
+    {
+      origin: document.getElementById("start").value,
+      destination: document.getElementById("end").value,
+      waypoints: waypts,
+      optimizeWaypoints: true,
+      travelMode: "DRIVING"
+    },
+    function(response, status) {
+      if (status === "OK") {
+        directionsRenderer.setDirections(response);
+        var route = response.routes[0];
+        var summaryPanel = document.getElementById("directions-panel");
+        summaryPanel.innerHTML = "";
+        // For each route, display summary information.
+        for (var i = 0; i < route.legs.length; i++) {
+          var routeSegment = i + 1;
+          summaryPanel.innerHTML +=
+            "<b>Route Segment: " + routeSegment + "</b><br>";
+          summaryPanel.innerHTML += route.legs[i].start_address + " to ";
+          summaryPanel.innerHTML += route.legs[i].end_address + "<br>";
+          summaryPanel.innerHTML += route.legs[i].distance.text + "<br><br>";
+        }
+      } else {
+        window.alert("Directions request failed due to " + status);
+      }
+    }
+  );
+}
+
 var initTheMap = function(locs, mapname) {
   console.log(mapname);
   console.log(locs);
@@ -38,6 +136,11 @@ var initTheMap = function(locs, mapname) {
   for (var i = 0; i < locs.length; i++) {
     var marker = new google.maps.Marker({position: locs[i], map: map});
   }
+}
+
+function convertToSheetId(link) {
+  var startDelimiter = 'spreadsheets/d/';
+  return link.substring(link.indexOf(startDelimiter)+startDelimiter.length).split('/')[0];
 }
 
 function createRow(arr) {
@@ -184,6 +287,7 @@ function handleAdmin() {
       socket.emit('removeAllAddresses', userID);
     }
     document.getElementById('view').style.display = 'block';
+    document.getElementById('lastMap').style.display = 'none';
     document.getElementById('deliveryTableTable').style.display = 'none';
     socket.emit('getPatients', userID);
     socket.on('patientRes', function(patients) {
@@ -199,6 +303,18 @@ function handleAdmin() {
         }
       }
       initMapWithInfos(locs, 'mapView', infos, keys);
+    })
+  }
+  document.getElementById('lastCalc').onclick = function(e) {
+    e.preventDefault();
+    document.getElementById('view').style.display = 'none';
+    document.getElementById('lastMap').style.display = 'block';
+    socket.emit('getPatients', userID);
+    socket.on('patientRes', function(patients) {
+      socket.emit('lastCalc', userID);
+      socket.on('lastCalcRes', function(solution) {
+        initMapWithColors(Object.values(patients), 'lastMap', solution.dropped, solution.start);
+      })
     })
   }
 }
@@ -221,7 +337,7 @@ document.getElementById('routes').onclick = function(e) {
 
         console.log(res.times);
         var opts = {
-          spreadsheetid: document.getElementById('linkToSpreadsheet').value,
+          spreadsheetid: convertToSheetId(document.getElementById('linkToSpreadsheet').value),
           delivererCount: parseInt(document.getElementById('numDeliv').value),
           formattedAddresses: res.formattedAddresses
         };
@@ -230,7 +346,12 @@ document.getElementById('routes').onclick = function(e) {
         } else {
           opts.maxTime = -1;
         }
-        socket.emit('vrp', res.times, opts);
+        if (document.getElementById('maxDest').value !== '') {
+          opts.maxDest = parseInt(document.getElementById('maxDest').value);
+        } else {
+          opts.maxDest = -1;
+        }
+        socket.emit('vrp', userID, res.times, opts, start);
         document.getElementById('calculatePopup').style.display = 'none';
         document.getElementById('confirmCalculation').innerHTML = 'Calculate';
         document.getElementById('confirmCalculation').disabled = false;

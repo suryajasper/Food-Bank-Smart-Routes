@@ -237,3 +237,9 @@ tr:nth-child(even) {
   height: 90vh;
   cursor: pointer;
 }
+.groupinputs {
+  background-color: rgb(214, 214, 214);
+}
+.groupinputs input,h4 {
+  display: inline-block;
+}

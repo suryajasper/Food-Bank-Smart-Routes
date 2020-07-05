@@ -15,7 +15,7 @@ var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 4002;
 
-var node_or_tools = require('node_or_tools');
+//var node_or_tools = require('node_or_tools');
 var util = require('util');
 
 function replaceAll(orig, toReplace, replaceWith) {
@@ -34,8 +34,8 @@ function getCoordinates(address) {
   return req;
 }
 
-var serviceAccount = require("../secret/food-bank-smart-routes-service-account.json");
-var googleDrive_serviceAccount = require("../secret/googledrivekey.json");
+var serviceAccount = require("/Users/suryajasper2004/Downloads/food-bank-smart-routes-service-account.json");
+var googleDrive_serviceAccount = require("/Users/suryajasper2004/Downloads/googledrivekey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -50,6 +50,21 @@ function maxLength(arr) {
     }
   }
   return max;
+}
+
+function getIndividualTimes(_routes, addresses, matrix) {
+	var routes = [];
+	for (var i = 0; i < _routes.length; i++)
+	  routes[i] = _routes[i].slice();
+	for (var i = 0; i < routes.length; i++) {
+		if (routes[i].length > 1) {
+			for (var j = 0; j < routes[i].length-1; j++) {
+				routes[i][j] = matrix[addresses.indexOf(routes[i][j])][addresses.indexOf(routes[i][j+1])];
+			}
+		}
+		routes[i].pop();
+	}
+	return routes;
 }
 
 function distanceMatrix(locations1, locations2) {
@@ -68,7 +83,7 @@ function distanceMatrix(locations1, locations2) {
 	var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
 	req.query({
 		'units': 'imperial',
-		'key': 'AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R',
+		'key': 'AlAZE9FEAcWr3KEvVmUQOgkd_W5OteguhMDuq2mKbrkni9WHwvnGVks1EPzy68sw',
 		'origins': patientAddresses,
 		'destinations': patientAddresses2,
 		'travelMode': 'driving'
@@ -87,8 +102,14 @@ async function writeToSheet(id, sol) {
 	var _headers = ['Time'];
 	for (var i = 0; i < maxLength(sol.routes); i++) {
 		_headers.push('Destination ' + (i+1).toString());
+		_headers.push('Travel Time ' + (i+1).toString() + '-' + (i+2).toString());
 	}
+	_headers.pop();
+	_headers.push('Dropped');
 
+	var droppedTracker = 0;
+
+	var indTimes = getIndividualTimes(sol.routes, sol.addresses, sol.matrix);
 	doc.addWorksheet({headers: _headers}, async function(addWorksheetErr, newSheet) {
 	  if (addWorksheetErr) console.error(addWorksheetErr);
 	  else {
@@ -97,6 +118,13 @@ async function writeToSheet(id, sol) {
 				for (var j = 0; j < sol.routes[i].length; j++) {
 					row['Destination ' + (j+1).toString()] = sol.routes[i][j];
 				}
+				for (var j = 0; j < indTimes[i].length; j++) {
+					row['Travel Time ' + (j+1).toString() + '-' + (j+2).toString()] = indTimes[i][j];
+				}
+				if (droppedTracker < sol.dropped.length) {
+					row['Dropped'] = sol.dropped[droppedTracker];
+				}
+				droppedTracker++;
 				await promisify(newSheet.addRow)(row);
 			}
 	  }
@@ -106,6 +134,8 @@ async function writeToSheet(id, sol) {
 var database = admin.database();
 var adminInfo = database.ref('adminInfo');
 var deliverInfo = database.ref('deliverInfo');
+var lastCalc = database.ref('lastCalc');
+var matrixSave = database.ref('matrix');
 
 io.on('connection', function(socket){
   socket.on('createAdmin', function(userID, _email, _accountPassword) {
@@ -207,6 +237,10 @@ io.on('connection', function(socket){
   });
   socket.on('removeAllAddresses', function(userID) {
     adminInfo.child(userID).child('patients').remove();
+		matrixSave.child(userID).remove();
+  });
+	socket.on('removeMatrixSave', function(userID) {
+		matrixSave.child(userID).remove();
   });
   socket.on('removeAllDeliveryPeople', function(userID) {
     adminInfo.child(userID).child('confirmedUsers').remove();
@@ -231,78 +265,93 @@ io.on('connection', function(socket){
   })
 
   socket.on('getDistanceMatrix', function(userID, start) {
-    adminInfo.child(userID).child('patients').once('value', function(snapshot) {
-			var locations = Object.values(snapshot.val());
-			var formattedAddresses = [];
-			for (var loc of locations) {
-				formattedAddresses.push(loc.address);
-			}
-			for (var i = 0; i < locations.length; i++) {
-				locations[i] = locations[i].coord;
-			}
-			locations.unshift(start);
-
-			if (locations.length > 25) {
-				// get pairs
-				var pairs = [];
-				for (var i = 0; i < locations.length; i+= 25) {
-					var firstPart = locations.slice(i, i+25);
-					for (var j = 0; j < locations.length; j+= 25) {
-						var secondPart = locations.slice(j, j+25);
-						pairs.push([firstPart, secondPart]);
+		matrixSave.child(userID).once('value', function(bigsnapshot) {
+			if (bigsnapshot.val() !== null) {
+				socket.emit('distanceMatrixRes', bigsnapshot.val());
+				console.log('we have a save');
+			} else {
+				adminInfo.child(userID).child('patients').once('value', function(snapshot) {
+					var locations = Object.values(snapshot.val());
+					var formattedAddresses = [];
+					for (var loc of locations) {
+						formattedAddresses.push(loc.address);
 					}
-				}
-
-				var results = pairs.map(function(loc) {
-					return new Promise(function(resolve, reject) {
-						var req = distanceMatrix(loc[0], loc[1]);
-						req.end(function(res) {resolve(res); });
-						return req;
-					});
-				});
-				Promise.all(results).then(function(result) {
-					console.log('started');
-					var times = [];
 					for (var i = 0; i < locations.length; i++) {
-						times.push([]);
+						locations[i] = locations[i].coord;
 					}
-					var curr = 0;
-					var howMany = 0;
-					var content = result.map(function(submatrix) {
-						var infos = submatrix.body.resourceSets[0].resources[0].results;
-						for (var destination of infos) {
-	            times[destination.originIndex+curr].push(parseFloat(destination.travelDuration));
-		        } howMany++;
-						if (howMany === Math.ceil(locations.length/25)) {
-							howMany = 0;
-							curr += 25;
-						}
-						return submatrix.body;
-					});
-					console.log('returned');
-					times[0][0] = 0;
-					socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
-				});
-			}
+					locations.unshift(start);
 
-			else {
-				var req = distanceMatrix(locations, locations);
-				req.end(function(res) {
-					var times = {};
-					for (var destination of res.body.resourceSets[0].resources[0].results) {
-	          if (destination.originIndex in times) {
-	            times[destination.originIndex].push(parseFloat(destination.travelDuration));
-	          } else {
-	            times[destination.originIndex] = [parseFloat(destination.travelDuration)];
-	          }
-	        } times = Object.values(times);
-					socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
-				})
+					if (locations.length > 25) {
+						// get pairs
+						var pairs = [];
+						for (var i = 0; i < locations.length; i+= 25) {
+							var firstPart = locations.slice(i, i+25);
+							for (var j = 0; j < locations.length; j+= 25) {
+								var secondPart = locations.slice(j, j+25);
+								pairs.push([firstPart, secondPart]);
+							}
+						}
+
+						var results = pairs.map(function(loc) {
+							return new Promise(function(resolve, reject) {
+								var req = distanceMatrix(loc[0], loc[1]);
+								req.end(function(res) {resolve(res); });
+								return req;
+							});
+						});
+						Promise.all(results).then(function(result) {
+							console.log('started');
+							var times = [];
+							for (var i = 0; i < locations.length; i++) {
+								times.push([]);
+							}
+							var curr = 0;
+							var howMany = 0;
+							var content = result.map(function(submatrix) {
+								var infos = submatrix.body.resourceSets[0].resources[0].results;
+								for (var destination of infos) {
+			            times[destination.originIndex+curr].push(parseFloat(destination.travelDuration));
+				        } howMany++;
+								if (howMany === Math.ceil(locations.length/25)) {
+									howMany = 0;
+									curr += 25;
+								}
+								return submatrix.body;
+							});
+							console.log('returned');
+							times[0][0] = 0;
+							socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
+							matrixSave.child(userID).set({times: times, formattedAddresses: formattedAddresses});
+						});
+					}
+
+					else {
+						var req = distanceMatrix(locations, locations);
+						req.end(function(res) {
+							var times = {};
+							for (var destination of res.body.resourceSets[0].resources[0].results) {
+			          if (destination.originIndex in times) {
+			            times[destination.originIndex].push(parseFloat(destination.travelDuration));
+			          } else {
+			            times[destination.originIndex] = [parseFloat(destination.travelDuration)];
+			          }
+			        } times = Object.values(times);
+							socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
+							matrixSave.child(userID).set({times: times, formattedAddresses: formattedAddresses});
+						})
+					}
+		    });
 			}
-    });
+		})
   })
 
-  socket.on('vrp', function(distanceMatrix, _options) {
+	socket.on('lastCalc', function(userID) {
+		lastCalc.child(userID).once('value', function(snapshot) {
+			socket.emit('lastCalcRes', snapshot.val());
+		})
+	})
+
+  socket.on('vrp', function(userID, distanceMatrix, _options, start) {
 		var req = require('unirest')("POST", 'http://35.239.86.72:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
 		var toSend = {matrix: distanceMatrix, options: _options};
@@ -311,6 +360,10 @@ io.on('connection', function(socket){
 			if ('error' in response.body) {
 				console.log(response.body.error);
 			}
+			var update = {};
+			response.body.start = start;
+			update[userID] = response.body;
+			lastCalc.update(update);
 			writeToSheet(_options.spreadsheetid, response.body);
 	  })
 	});
