@@ -34,8 +34,8 @@ function getCoordinates(address) {
   return req;
 }
 
-var serviceAccount = require("/Users/suryajasper2004/Downloads/food-bank-smart-routes-service-account.json");
-var googleDrive_serviceAccount = require("/Users/suryajasper2004/Downloads/googledrivekey.json");
+var serviceAccount = require("../secret/food-bank-smart-routes-service-account.json");
+var googleDrive_serviceAccount = require("../secret/googledrivekey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
