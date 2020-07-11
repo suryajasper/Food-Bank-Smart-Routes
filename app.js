@@ -351,7 +351,7 @@ io.on('connection', function(socket){
 		})
 	})
 
-  socket.on('vrp', function(userID, distanceMatrix, _options, start) {
+  socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
 		var req = require('unirest')("POST", 'http://35.239.86.72:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
 		var toSend = {matrix: distanceMatrix, options: _options};
@@ -363,6 +363,7 @@ io.on('connection', function(socket){
 			var update = {};
 			response.body.start = start;
 			update[userID] = response.body;
+			update[userID].coords = locs;
 			lastCalc.update(update);
 			writeToSheet(_options.spreadsheetid, response.body);
 	  })

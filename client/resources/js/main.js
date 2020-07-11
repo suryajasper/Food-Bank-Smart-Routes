@@ -9,9 +9,14 @@ var hidePopups = function() {
   document.getElementById('map').style.display = 'none';
 
   document.getElementById('calculatePopup').style.display = 'none';
+
+  document.getElementById('addBankButton').disabled = false;
 }
 
-function initMapWithInfos(locs, mapname, infos, keys) {
+function initMapWithInfos(locs, mapname, infos) {
+  document.getElementById(mapname).style.display = 'block';
+  console.log(locs);
+  console.log(infos);
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
   var iw = new google.maps.InfoWindow();
@@ -170,13 +175,12 @@ function droppedLocations() {
   document.getElementById('lastCalcBody').style.display = 'block';
   document.getElementById('lastMap').style.display = 'block';
   document.getElementById('lastSelect').style.display = 'none';
-
-  socket.emit('getPatients', userID);
-  socket.on('patientRes', function(patients) {
-    socket.emit('lastCalc', userID);
-    socket.on('lastCalcRes', function(solution) {
-      initMapWithColors(Object.values(patients), 'lastMap', solution.dropped, solution.start);
-    })
+  socket.emit('lastCalc', userID);
+  socket.on('lastCalcRes', function(solution) {
+    var addresses = Object.values(solution.addresses);
+    addresses.shift();
+    console.log(addresses.length);
+    initMapWithColors(Object.values(solution.coords), 'lastMap', solution.dropped, solution.start);
   })
 }
 
@@ -238,15 +242,16 @@ function handleAdmin() {
           });
         };
         document.getElementById(seq[4]).onclick = function(e) {
+          e.preventDefault();
           if (document.getElementById(seq[3]).value !== '') {
-            e.preventDefault();
             var addressesRaw = document.getElementById(seq[3]).value.split('\n');
             socket.on('coordinatesMultRes', function(locs, cooked) {
               locations = [];
               for (var i = 0; i < locs.length; i++) {
                 locations.push({coord: locs[i], address: cooked[i]});
               }
-              initTheMap(locs, seq[2]);
+              initMapWithInfos(locs, seq[2], cooked);
+              document.getElementById('addBankButton').disabled = false;
             });
             socket.emit('getCoordinatesMult', addressesRaw);
           }
@@ -264,7 +269,8 @@ function handleAdmin() {
               for (var i = 0; i < locs.length; i++) {
                 locations.push({coord: locs[i], address: cooked[i]});
               }
-              initTheMap(locs, seq[2]);
+              initMapWithInfos(locs, seq[2], cooked);
+              document.getElementById(seq[4]).disabled = true;
               document.getElementById('addBankButton').onclick = function(e) {
                 e.preventDefault();
                 socket.emit('addAddresses', userID, locations);
@@ -273,6 +279,7 @@ function handleAdmin() {
               }
             });
             socket.emit('getCoordinatesMult', arr2);
+            document.getElementById('addBankButton').disabled = false;
           } else {
             for (var row of results.data) {
               s = removeEmptyStrings(row);
@@ -298,6 +305,8 @@ function handleAdmin() {
 
   document.getElementById('addPatient').onclick = function(e) {
     hidePopups();
+    document.getElementById('preview').disabled = false;
+    document.getElementById('addBankButton').disabled = true;
     document.getElementById('addPatientDiv').style.display = 'block';
   }
   document.getElementById('viewPatient').onclick = function(e) {
@@ -320,7 +329,7 @@ function handleAdmin() {
           infos.push(patients[key].address);
         }
       }
-      initMapWithInfos(locs, 'mapView', infos, keys);
+      initMapWithInfos(locs, 'mapView', infos);
     })
   }
   document.getElementById('lastCalc').onclick = function(e) {
@@ -345,36 +354,48 @@ document.getElementById('routes').onclick = function(e) {
   document.getElementById('calculatePopup').style.display = 'block';
   document.getElementById('confirmCalculation').onclick = function(e2){
     e2.preventDefault();
-    document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
-    document.getElementById('confirmCalculation').disabled = true;
-    var tempsawe = document.getElementById('depotAddressIn').value;
-    socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
-    socket.on('coordinatesRes', function(start) {
-      // get driver locations
-      socket.emit('getDistanceMatrix', userID, start);
-      socket.on('distanceMatrixRes', function(res) {
-        res.formattedAddresses.unshift(tempsawe);
-        var opts = {
-          spreadsheetid: convertToSheetId(document.getElementById('linkToSpreadsheet').value),
-          delivererCount: parseInt(document.getElementById('numDeliv').value),
-          formattedAddresses: res.formattedAddresses
-        };
-        if (document.getElementById('maxTime').value !== '') {
-          opts.maxTime = parseInt(document.getElementById('maxTime').value);
-        } else {
-          opts.maxTime = -1;
-        }
-        if (document.getElementById('maxDest').value !== '') {
-          opts.maxDest = parseInt(document.getElementById('maxDest').value);
-        } else {
-          opts.maxDest = -1;
-        }
-        socket.emit('vrp', userID, res.times, opts, start);
-        document.getElementById('calculatePopup').style.display = 'none';
-        document.getElementById('confirmCalculation').innerHTML = 'Calculate';
-        document.getElementById('confirmCalculation').disabled = false;
+    var inputs = ['depotAddressIn', 'maxTime', 'maxDest', 'numDeliv', 'linkToSpreadsheet'];
+    var allGood = true;
+    for (var inp of inputs) {
+      if (document.getElementById(inp).value === '') {
+        allGood = false;
+      }
+    }
+    if (allGood) {
+      document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
+      document.getElementById('confirmCalculation').disabled = true;
+      var tempsawe = document.getElementById('depotAddressIn').value;
+      socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
+      socket.on('coordinatesRes', function(start) {
+        // get driver locations
+        socket.emit('getDistanceMatrix', userID, start);
+        socket.on('distanceMatrixRes', function(res) {
+          socket.emit('getPatients', userID);
+          socket.on('patientRes', function(addresses) {
+            res.formattedAddresses.unshift(tempsawe);
+            var opts = {
+              spreadsheetid: convertToSheetId(document.getElementById('linkToSpreadsheet').value),
+              delivererCount: parseInt(document.getElementById('numDeliv').value),
+              formattedAddresses: res.formattedAddresses
+            };
+            if (document.getElementById('maxTime').value !== '') {
+              opts.maxTime = parseInt(document.getElementById('maxTime').value);
+            } else {
+              opts.maxTime = -1;
+            }
+            if (document.getElementById('maxDest').value !== '') {
+              opts.maxDest = parseInt(document.getElementById('maxDest').value);
+            } else {
+              opts.maxDest = -1;
+            }
+            socket.emit('vrp', userID, res.times, opts, start, addresses);
+            document.getElementById('calculatePopup').style.display = 'none';
+            document.getElementById('confirmCalculation').innerHTML = 'Calculate';
+            document.getElementById('confirmCalculation').disabled = false;
+          });
+        })
       })
-    })
+    }
   }
 }
 
