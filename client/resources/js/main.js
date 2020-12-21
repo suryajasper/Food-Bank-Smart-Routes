@@ -4,6 +4,8 @@ var socket = io();
 var hidePopups = function() {
   document.getElementById('addPatientDiv').style.display = 'none';
 
+  document.getElementById('addVolunteerAddressDiv').style.display = 'none';
+
   document.getElementById('csvLabel').innerHTML = 'import a .csv file';
 
   document.getElementById('map').style.display = 'none';
@@ -33,16 +35,54 @@ function initMapWithInfos(locs, mapname, infos) {
   }
 }
 
+function initMapWithColorsNoOverlap(locs, mapname, dropped) {
+  map = new google.maps.Map(
+      document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
+  var iw = new google.maps.InfoWindow();
+  for (var i = 0; i < locs.length; i++) {
+    var marker = new google.maps.Marker({
+      position: locs[i].coord,
+      icon: {
+        url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+      },
+      map: map
+    });
+    google.maps.event.addListener(marker, 'click', (function(marker, i) {
+      return function() {
+        iw.setContent('<b><span style = "color: green">Patient:</span></b> ' + locs[i].address);
+        iw.open(map, marker);
+      }
+    })(marker, i));
+  }
+  for (var i = 0; i < dropped.length; i++) {
+    var marker = new google.maps.Marker({
+      position: dropped[i].coord,
+      icon: {
+        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+      },
+      map: map
+    });
+    google.maps.event.addListener(marker, 'click', (function(marker, i) {
+      return function() {
+        iw.setContent('<b><span style = "color: blue">Driver:</span></b> ' + dropped[i].address);
+        iw.open(map, marker);
+      }
+    })(marker, i));
+  }
+}
+
 function initMapWithColors(locs, mapname, dropped, start) {
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
-  var startmarker = new google.maps.Marker({
-    position: start,
-    icon: {
-      url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-    },
-    map: map
-  });
+  if (start) {
+    var startmarker = new google.maps.Marker({
+      position: start,
+      icon: {
+        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+      },
+      map: map
+    });
+  }
   var iw = new google.maps.InfoWindow();
   for (var i = 0; i < locs.length; i++) {
     if (dropped.includes(locs[i].address)) {
@@ -237,6 +277,7 @@ function fillTable(tableId, data) {
 
 function extractRange(data, callback) {
   document.getElementById('columnPopup').style.display ='block';
+  document.getElementById('columnPopupTable').innerHTML = '';
   fillTable('columnPopupTable', data);
   var table = document.getElementById('columnPopupTable');
   var selected = {row: -1, col: -1};
@@ -247,7 +288,7 @@ function extractRange(data, callback) {
       var td = table.children[row].children[col];
       td.onclick = function() {
         if (selected.row < 0) {
-          td.style.backgroundColor = 'green';
+          td.style.backgroundColor = '#00c700';
           selected.row = row;
           selected.col = col;
         } else if (col == selected.col) {
@@ -255,9 +296,10 @@ function extractRange(data, callback) {
           var bottomRow = Math.max(selected.row, row);
           for (var toFillRow = topRow; toFillRow <= bottomRow; toFillRow++) {
             var thisRow = table.children[toFillRow].children[col];
-            thisRow.style.backgroundColor = 'green';
+            thisRow.style.backgroundColor = '#00c700';
             range.push(thisRow.innerHTML);
           }
+          selected.row = -1;
           document.getElementById('confirmExtraction').disabled = false;
           document.getElementById('confirmExtraction').onclick = function() {
             callback(range);
@@ -286,44 +328,44 @@ function handleAdmin() {
 
   var addListeners = function(arr) {
     for (var seq of arr) (function(seq) {
-      if (seq[5]) {
-        document.getElementById('addBankButton').onclick = function(e) {
+      if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
+        seq.addAddressesButton.onclick = function(e) {
           e.preventDefault();
-          var addressesRaw = document.getElementById(seq[3]).value.split('\n');
+          var addressesRaw = document.getElementById(seq.addressIn).value.split('\n');
           socket.emit('getCoordinatesMult', addressesRaw);
           socket.on('coordinatesMultRes', function(locs, cooked) {
             locations = [];
             for (var i = 0; i < locs.length; i++) {
               locations.push({coord: locs[i], address: cooked[i]});
             }
-            socket.emit('addAddresses', userID, locations);
+            socket.emit('addAddresses', userID, locations, seq.addressType);
             locations = [];
             hidePopups();
           });
         };
-        document.getElementById(seq[4]).onclick = function(e) {
+        document.getElementById(seq.previewButton).onclick = function(e) {
           e.preventDefault();
-          if (document.getElementById(seq[3]).value !== '') {
-            var addressesRaw = document.getElementById(seq[3]).value.split('\n');
+          if (document.getElementById(seq.addressIn).value !== '') {
+            var addressesRaw = document.getElementById(seq.addressIn).value.split('\n');
             socket.on('coordinatesMultRes', function(locs, cooked) {
               locations = [];
               for (var i = 0; i < locs.length; i++) {
                 locations.push({coord: locs[i], address: cooked[i]});
               }
-              initMapWithInfos(locs, seq[2], cooked);
-              document.getElementById('addBankButton').disabled = false;
+              initMapWithInfos(locs, seq.map, cooked);
+              seq.addAddressesButton.disabled = false;
             });
             socket.emit('getCoordinatesMult', addressesRaw);
           }
         };
       }
-      document.getElementById(seq[0]).onchange = function(event) {
-        document.getElementById(seq[1]).innerHTML = 'selected';
-        var file = document.getElementById(seq[0]).files[0];
+      document.getElementById(seq.csvInput).onchange = function(event) {
+        document.getElementById(seq.csvLabel).innerHTML = 'selected';
+        var file = document.getElementById(seq.csvInput).files[0];
         Papa.parse(file, {complete: function(results) {
           console.log('csv', results.data);
           var arr2 = [];
-          if (seq[5]) {
+          if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
             extractRange(results.data, function (res) {
               arr2 = res;
               socket.on('coordinatesMultRes', function(locs, cooked) {
@@ -331,12 +373,12 @@ function handleAdmin() {
                 for (var i = 0; i < locs.length; i++) {
                   locations.push({coord: locs[i], address: cooked[i]});
                 }
-                initMapWithInfos(locs, seq[2], cooked);
-                document.getElementById(seq[4]).disabled = true;
-                document.getElementById('addBankButton').disabled = false;
-                document.getElementById('addBankButton').onclick = function(e) {
+                initMapWithInfos(locs, seq.map, cooked);
+                document.getElementById(seq.previewButton).disabled = true;
+                seq.addAddressesButton.disabled = false;
+                seq.addAddressesButton.onclick = function(e) {
                   e.preventDefault();
-                  socket.emit('addAddresses', userID, locations);
+                  socket.emit('addAddresses', userID, locations, seq.addressType);
                   locations = [];
                   hidePopups();
                 }
@@ -355,7 +397,27 @@ function handleAdmin() {
     })(seq)
   }
 
-  addListeners([['csvInput', 'csvLabel', 'map', 'patientAddresses', 'preview',true]]);
+  addListeners([
+  {
+    csvInput: 'csvInput',
+    csvLabel: 'csvLabel',
+    map: 'map',
+    addressIn: 'patientAddresses',
+    previewButton: 'preview',
+    addAddressesButton: document.getElementById('addBankButton'),
+    addressType: 'patients',
+    idekWhatThisParameterDoesButImTooScaredToRemoveIt: true
+  },
+  {
+    csvInput: 'csvInputVolunteer',
+    csvLabel: 'csvLabelVolunteer',
+    map: 'mapVolunteer',
+    addressIn: 'volunteerAddresses',
+    previewButton: 'previewVolunteer',
+    addAddressesButton: document.getElementById('addVolunteerAddress'),
+    addressType: 'volunteers',
+    idekWhatThisParameterDoesButImTooScaredToRemoveIt: true
+  }]);
 
   for (var cancel of document.getElementsByClassName('cancel')) {
     cancel.onclick = function(e) {
@@ -372,6 +434,12 @@ function handleAdmin() {
     document.getElementById('addBankButton').disabled = true;
     document.getElementById('addPatientDiv').style.display = 'block';
   }
+  document.getElementById('addVolunteer').onclick = function(e) {
+    hidePopups();
+    document.getElementById('previewVolunteer').disabled = false;
+    document.getElementById('addVolunteerAddress').disabled = true;
+    document.getElementById('addVolunteerAddressDiv').style.display = 'block';
+  }
   document.getElementById('viewPatient').onclick = function(e) {
     e.preventDefault();
     document.getElementById('removeAll').onclick = function(e) {
@@ -382,17 +450,14 @@ function handleAdmin() {
     document.getElementById('lastCalcBody').style.display = 'none';
     socket.emit('getPatients', userID);
     socket.on('patientRes', function(patients) {
-      document.getElementById('mapView').style.display = 'block';
-      var locs = [];
-      var infos = [];
-      var keys = Object.keys(patients);
-      for (var key of keys) {
-        if (patients[key] !== null) {
-          locs.push(patients[key].coord);
-          infos.push(patients[key].address);
-        }
-      }
-      initMapWithInfos(locs, 'mapView', infos);
+      console.log(patients);
+      socket.emit('getVolunteers', userID);
+      socket.on('volunteerRes', function(volunteers) {
+        console.log(volunteers);
+        document.getElementById('mapView').style.display = 'block';
+        //console.log(locs, locsVolunteer);
+        initMapWithColorsNoOverlap(patients, 'mapView', volunteers);
+      })
     })
   }
   document.getElementById('lastCalc').onclick = function(e) {

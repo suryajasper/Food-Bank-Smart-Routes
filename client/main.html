@@ -12,7 +12,8 @@
     <div class = "center-div">
       <div id = "showIfAdmin" style = "display: none;">
         <button id = "addPatient">Add Patients</button>
-        <button id = "viewPatient">View Patients</button>
+        <button id = "addVolunteer">Add Volunteers</button>
+        <button id = "viewPatient">View Addresses</button>
         <!--button id = "addDeliveryPerson">Add Delivery Personnel</button>
         <button id = "viewDeliveryPerson">View Delivery Personnel</button-->
         <button id = "routes">Find best routes</button>
@@ -60,6 +61,26 @@
             <button id = "preview">Preview Addresses on map</button>
             <div style = "width: 70vw; height: 40vh; display: none;" id="map"></div>
             <button class = "cancel">cancel</button><input id = "addBankButton" value = "Add Addresses" type = "submit"></input>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class = "centered">
+    <div id = "addVolunteerAddressDiv" class = "popup" style = " background-color: rgb(240, 239, 239);">
+      <div class = "center-outside">
+        <div class = "center-div">
+          <form>
+            <h3>Add Volunteer Addresses</h3>
+            <br>
+            Enter as a list of addresses (each on a new line)
+            <br>
+            <textarea style = "width: 90%;" id = "volunteerAddresses" placeholder = "784 South Street Hummelstown, PA 17036
+8918 Heather Ave. Shepherdsville, KY 40165"></textarea><br>
+            <b>or</b> if you prefer to store addresses on a spreadsheet, <input accept=".csv" class = "inputfile" type = "file" name = "csvInputVolunteer" id = "csvInputVolunteer"></input><label id = "csvLabelVolunteer" for="csvInputVolunteer">import a .csv file</label><br>
+            <button id = "previewVolunteer">Preview Addresses on map</button>
+            <div style = "width: 70vw; height: 40vh; display: none;" id="mapVolunteer"></div>
+            <button class = "cancel">cancel</button><input id = "addVolunteerAddress" value = "Add Addresses" type = "submit"></input>
           </form>
         </div>
       </div>

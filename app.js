@@ -217,26 +217,28 @@ io.on('connection', function(socket){
       socket.emit('coordinatesMultRes', locations, _addresses);
     });
   });
-  socket.on('addAddresses', function(userID, locs) {
-    adminInfo.child(userID).child('patients').once('value', function(snapshot) {
+  socket.on('addAddresses', function(userID, locs, type) {
+	if (!type) type = 'patients';
+    adminInfo.child(userID).child(type).once('value', function(snapshot) {
       var update = {};
       if (snapshot.val() === null) {
         for (var i = 0; i < locs.length; i++) {
           update[i] = locs[i];
-        } adminInfo.child(userID).child('patients').update(update);
+        } adminInfo.child(userID).child(type).update(update);
       } else {
 				var offset = Object.keys(snapshot.val()).length;
         for (var i = 0; i < locs.length; i++) {
           update[offset+i] = locs[i];
-        } adminInfo.child(userID).child('patients').update(update);
+        } adminInfo.child(userID).child(type).update(update);
       }
     })
   });
   socket.on('addDeliveryPeople', function(userID, locs) {
     adminInfo.child(userID).child('confirmedUsers').update(locs);
   });
-  socket.on('removeAllAddresses', function(userID) {
-    adminInfo.child(userID).child('patients').remove();
+  socket.on('removeAllAddresses', function(userID, type) {
+	  if (!type) type = 'patients';
+    adminInfo.child(userID).child(type).remove();
 		matrixSave.child(userID).remove();
   });
 	socket.on('removeMatrixSave', function(userID) {
@@ -257,9 +259,17 @@ io.on('connection', function(socket){
   })
 
   socket.on('getPatients', function(userID) {
-    adminInfo.child(userID).child('patients').on('value', function(snapshot) {
+    adminInfo.child(userID).child('patients').once('value', function(snapshot) {
       if (snapshot.val() !== null) {
         socket.emit('patientRes', snapshot.val());
+      }
+    })
+  })
+
+  socket.on('getVolunteers', function(userID) {
+    adminInfo.child(userID).child('volunteers').once('value', function(snapshot) {
+      if (snapshot.val() !== null) {
+        socket.emit('volunteerRes', snapshot.val());
       }
     })
   })
