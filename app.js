@@ -96,13 +96,15 @@ function distanceMatrix(locations1, locations2) {
 	});*/
 }
 
-async function writeToSheet(id, sol) {
+async function writeToSheet(id, sol, shouldGenerateTravelTimes) {
 	var doc = new GoogleSpreadsheet(id);
 	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
 	var _headers = ['Time'];
 	for (var i = 0; i < maxLength(sol.routes); i++) {
-		_headers.push('Destination ' + (i+1).toString());
-		_headers.push('Travel Time ' + (i+1).toString() + '-' + (i+2).toString());
+        _headers.push('Destination ' + (i+1).toString());
+        if (shouldGenerateTravelTimes) {
+            _headers.push('Travel Time ' + (i+1).toString() + '-' + (i+2).toString());
+        }
 	}
 	_headers.pop();
 	_headers.push('Dropped');
@@ -117,10 +119,12 @@ async function writeToSheet(id, sol) {
 				var row = {Time: sol.times[i].toString()};
 				for (var j = 0; j < sol.routes[i].length; j++) {
 					row['Destination ' + (j+1).toString()] = sol.routes[i][j];
-				}
-				for (var j = 0; j < indTimes[i].length; j++) {
-					row['Travel Time ' + (j+1).toString() + '-' + (j+2).toString()] = indTimes[i][j];
-				}
+                }
+                if (shouldGenerateTravelTimes) {
+                    for (var j = 0; j < indTimes[i].length; j++) {
+                        row['Travel Time ' + (j+1).toString() + '-' + (j+2).toString()] = indTimes[i][j];
+                    }
+                }
 				if (droppedTracker < sol.dropped.length) {
 					row['Dropped'] = sol.dropped[droppedTracker];
 				}
@@ -365,7 +369,7 @@ io.on('connection', function(socket){
 			update[userID] = response.body;
 			update[userID].coords = locs;
 			lastCalc.update(update);
-			writeToSheet(_options.spreadsheetid, response.body);
+			writeToSheet(_options.spreadsheetid, response.body, _options.shouldGenerateTravelTimes);
 	  })
 	});
 });

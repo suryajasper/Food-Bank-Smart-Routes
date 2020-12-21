@@ -388,6 +388,7 @@ document.getElementById('routes').onclick = function(e) {
             } else {
               opts.maxDest = -1;
             }
+            opts.shouldGenerateTravelTimes = !!document.getElementById('travelTimesCheckbox')?.checked;
             socket.emit('vrp', userID, res.times, opts, start, addresses);
             document.getElementById('calculatePopup').style.display = 'none';
             document.getElementById('confirmCalculation').innerHTML = 'Calculate';
