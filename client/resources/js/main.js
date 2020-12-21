@@ -10,6 +10,8 @@ var hidePopups = function() {
 
   document.getElementById('calculatePopup').style.display = 'none';
 
+  document.getElementById('columnPopup').style.display = 'none';
+
   document.getElementById('addBankButton').disabled = false;
 }
 
@@ -220,6 +222,64 @@ function setSelected(ind) {
   }
 }
 
+function fillTable(tableId, data) {
+  var table = document.getElementById(tableId);
+  for (var row of data) {
+    var tr = document.createElement('tr');
+    for (var el of row) {
+      var td = document.createElement('td');
+      td.innerHTML = el;
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+function extractRange(data, callback) {
+  document.getElementById('columnPopup').style.display ='block';
+  fillTable('columnPopupTable', data);
+  var table = document.getElementById('columnPopupTable');
+  var selected = {row: -1, col: -1};
+  var range = [];
+  document.getElementById('confirmExtraction').disabled = true;
+  for (var row = 0; row < table.childElementCount; row++) (function(row) {
+    for (var col = 0; col < table.children[row].childElementCount; col++) (function(col) {
+      var td = table.children[row].children[col];
+      td.onclick = function() {
+        if (selected.row < 0) {
+          td.style.backgroundColor = 'green';
+          selected.row = row;
+          selected.col = col;
+        } else if (col == selected.col) {
+          var topRow = Math.min(selected.row, row);
+          var bottomRow = Math.max(selected.row, row);
+          for (var toFillRow = topRow; toFillRow <= bottomRow; toFillRow++) {
+            var thisRow = table.children[toFillRow].children[col];
+            thisRow.style.backgroundColor = 'green';
+            range.push(thisRow.innerHTML);
+          }
+          document.getElementById('confirmExtraction').disabled = false;
+          document.getElementById('confirmExtraction').onclick = function() {
+            callback(range);
+            document.getElementById('columnPopup').style.display ='none';
+          };
+        }
+      }
+    })(col);
+  })(row);
+  document.getElementById('clearColumnSelection').onclick = function() {
+    selected = {row: -1, col: -1};
+    range = [];
+    for (var row = 0; row < table.childElementCount; row++) {
+      for (var col = 0; col < table.children[row].childElementCount; col++) {
+        var td = table.children[row].children[col];
+        td.style.backgroundColor = 'white';
+      }
+    }
+    document.getElementById('confirmExtraction').disabled = true;
+  }
+}
+
 function handleAdmin() {
   var locations = [];
   var emails = [];
@@ -261,25 +321,28 @@ function handleAdmin() {
         document.getElementById(seq[1]).innerHTML = 'selected';
         var file = document.getElementById(seq[0]).files[0];
         Papa.parse(file, {complete: function(results) {
+          console.log('csv', results.data);
           var arr2 = [];
           if (seq[5]) {
-            for (var row of results.data) {arr2.push(row[0])}
-            socket.on('coordinatesMultRes', function(locs, cooked) {
-              locations = [];
-              for (var i = 0; i < locs.length; i++) {
-                locations.push({coord: locs[i], address: cooked[i]});
-              }
-              initMapWithInfos(locs, seq[2], cooked);
-              document.getElementById(seq[4]).disabled = true;
-              document.getElementById('addBankButton').onclick = function(e) {
-                e.preventDefault();
-                socket.emit('addAddresses', userID, locations);
+            extractRange(results.data, function (res) {
+              arr2 = res;
+              socket.on('coordinatesMultRes', function(locs, cooked) {
                 locations = [];
-                hidePopups();
-              }
+                for (var i = 0; i < locs.length; i++) {
+                  locations.push({coord: locs[i], address: cooked[i]});
+                }
+                initMapWithInfos(locs, seq[2], cooked);
+                document.getElementById(seq[4]).disabled = true;
+                document.getElementById('addBankButton').disabled = false;
+                document.getElementById('addBankButton').onclick = function(e) {
+                  e.preventDefault();
+                  socket.emit('addAddresses', userID, locations);
+                  locations = [];
+                  hidePopups();
+                }
+              });
+              socket.emit('getCoordinatesMult', arr2);
             });
-            socket.emit('getCoordinatesMult', arr2);
-            document.getElementById('addBankButton').disabled = false;
           } else {
             for (var row of results.data) {
               s = removeEmptyStrings(row);

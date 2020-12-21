@@ -220,10 +220,9 @@ textarea:hover {
   -webkit-transition: 0.5s;
 }
 
-table {
+/*table {
   font-family: arial, sans-serif;
   border-collapse: collapse;
-  width: 100%;
 }
 
 td, th {
@@ -234,7 +233,7 @@ td, th {
 
 tr:nth-child(even) {
   background-color: #dddddd;
-}
+}*/
 #deliveryMap {
   width: 100vw;
   height: 90vh;
@@ -264,4 +263,27 @@ button.switchActive {
   border-bottom: 2px solid rgb(185, 185, 185);
   background-color: rgb(185, 185, 185);
   color: var(--buttonSelectActiveBorderColor);
+}
+
+table.columnPopupTable {
+  width: 100%;
+  overflow-y: scroll;
+  overflow-x: scroll;
+  height: 70vh;
+  display: block;
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+}
+
+table.columnPopupTable td {
+  padding: 6px 3px 6px 3px;
+  border: 1px solid black;
+  background-color: white;
+  cursor: pointer;
+  -webkit-transition: 0.5s;
+}
+
+table.columnPopupTable td:hover {
+  background-color: #a9caa0;
+  -webkit-transition: 0.5s;
 }
