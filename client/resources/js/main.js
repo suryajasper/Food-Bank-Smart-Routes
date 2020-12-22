@@ -17,6 +17,43 @@ var hidePopups = function() {
   document.getElementById('addBankButton').disabled = false;
 }
 
+function createMarkerImage(color) {
+  var pinColor = color;
+
+  // Pick your pin (hole or no hole)
+  var pinSVGHole = "M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z";
+  var pinSVGFilled = "M 12,2 C 8.1340068,2 5,5.1340068 5,9 c 0,5.25 7,13 7,13 0,0 7,-7.75 7,-13 0,-3.8659932 -3.134007,-7 -7,-7 z";
+
+  var markerImage = {  // https://developers.google.com/maps/documentation/javascript/reference/marker#MarkerLabel
+      path: pinSVGHole,
+      anchor: new google.maps.Point(12,17),
+      fillOpacity: 1,
+      fillColor: pinColor,
+      strokeWeight: 2,
+      strokeColor: "white",
+      scale: 2
+  };
+
+  return markerImage;
+}
+
+function createMarker(m) {
+  var mapInit = {
+    position: m.coord,
+    map: m.map
+  };
+  if ('icon' in m) {
+    mapInit.icon = {
+      url: m.icon
+    };
+  }
+  var marker = new google.maps.Marker(mapInit);
+  google.maps.event.addListener(marker, 'click', function() {
+    m.iw.setContent(m.info);
+    m.iw.open(m.map, marker);
+  });
+}
+
 function initMapWithInfos(locs, mapname, infos) {
   document.getElementById(mapname).style.display = 'block';
   console.log(locs);
@@ -40,34 +77,22 @@ function initMapWithColorsNoOverlap(locs, mapname, dropped) {
       document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
   var iw = new google.maps.InfoWindow();
   for (var i = 0; i < locs.length; i++) {
-    var marker = new google.maps.Marker({
-      position: locs[i].coord,
-      icon: {
-        url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-      },
-      map: map
+    createMarker({
+      map: map, 
+      iw: iw,
+      coord: locs[i].coord,
+      info: '<b><span style = "color: green">Patient:</span></b> ' + locs[i].address, 
+      icon: createMarkerImage("#00ff55")
     });
-    google.maps.event.addListener(marker, 'click', (function(marker, i) {
-      return function() {
-        iw.setContent('<b><span style = "color: green">Patient:</span></b> ' + locs[i].address);
-        iw.open(map, marker);
-      }
-    })(marker, i));
   }
   for (var i = 0; i < dropped.length; i++) {
-    var marker = new google.maps.Marker({
-      position: dropped[i].coord,
-      icon: {
-        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-      },
-      map: map
+    createMarker({
+      map: map,
+      iw: iw,
+      coord: dropped[i].coord,
+      info: '<b><span style = "color: blue">Driver:</span></b> ' + dropped[i].address, 
+      icon: createMarkerImage("#00a1ff")
     });
-    google.maps.event.addListener(marker, 'click', (function(marker, i) {
-      return function() {
-        iw.setContent('<b><span style = "color: blue">Driver:</span></b> ' + dropped[i].address);
-        iw.open(map, marker);
-      }
-    })(marker, i));
   }
 }
 
@@ -199,6 +224,7 @@ function removeEmptyStrings(arr) {
 }
 
 function fillSelect(name, length) {
+  $('#' + name).empty();
   var soption = document.createElement('option');
   soption.innerHTML = 'all';
   soption.value = 'all';
@@ -480,9 +506,27 @@ function handleAdmin() {
 document.getElementById('routes').onclick = function(e) {
   e.preventDefault();
   document.getElementById('calculatePopup').style.display = 'block';
+  socket.emit('getCalcCache', userID);
+  socket.on('calcCacheRes', function(res) {
+    for (var inputID of Object.keys(res)) {
+      document.getElementById(inputID).value = res[inputID];
+    }
+  })
+  function updateInputField() {
+    document.getElementById('numDeliv').disabled = document.getElementById('driverNumberAuto').checked;
+  } updateInputField();
+  document.getElementById('driverNumberAuto').oninput = updateInputField;
   document.getElementById('confirmCalculation').onclick = function(e2){
     e2.preventDefault();
     var inputs = ['depotAddressIn', 'maxTime', 'maxDest', 'numDeliv', 'linkToSpreadsheet'];
+
+    // cache it
+    socket.emit('updateCalcCache', userID, {
+      depotAddressIn: document.getElementById('depotAddressIn').value,
+      maxTime: document.getElementById('maxTime').value,
+      numDeliv: document.getElementById('numDeliv').value
+    });
+
     var allGood = true;
     for (var inp of inputs) {
       if (document.getElementById(inp).value === '') {
@@ -506,6 +550,9 @@ document.getElementById('routes').onclick = function(e) {
               delivererCount: parseInt(document.getElementById('numDeliv').value),
               formattedAddresses: res.formattedAddresses
             };
+            if (document.getElementById('driverNumberAuto').checked) {
+              opts.delivererCount = -1;
+            }
             if (document.getElementById('maxTime').value !== '') {
               opts.maxTime = parseInt(document.getElementById('maxTime').value);
             } else {

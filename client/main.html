@@ -87,12 +87,12 @@
     </div>
   </div>
   <div class = "centered">
-    <div id = "calculatePopup" class = "popup" style = "display: none; background-color: rgb(240, 239, 239);">
+    <div id = "calculatePopup" class = "popup overflowpopup" style = "display: none; background-color: rgb(240, 239, 239);">
       <div class = "center-outside">
         <div class = "center-div">
           <form>
             <h3>Depot Address</h3>
-            <input type = "text" placeholder = "address" id = "depotAddressIn"></input>
+            <input style = "width: 100%" type = "text" placeholder = "address" id = "depotAddressIn"></input>
             <h3>Parameters</h3>
             <div class = "groupinputs">
               <h4>Maximum Travel Time per vehicle</h4>
@@ -101,6 +101,8 @@
               <input id = "maxDest" type = "number" placeholder = "5" min = "1"></input><br>
               <h4>Number of Delivery Personnel</h4>
               <input id = "numDeliv" type = "number" placeholder = "10" min = "1"></input>
+              <h4>Use Number of Drivers Stored</h4><input id="driverNumberAuto" type="checkbox"></input>
+              <h4>Use Drivers' Home Addresses For Last Stop</h4><input id="driverAddressLast" type="checkbox"></input>
             </div>
             <h3>Configure generated spreadsheet data</h3>
             <input id="travelTimesCheckbox" type="checkbox">Generate travel times between destinations in spreadsheet</input>

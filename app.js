@@ -253,8 +253,8 @@ io.on('connection', function(socket){
   })
   socket.on('getDeliverersInfo', function(userID) {
     adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
-			if (snapshot.val() !== null)
-      	socket.emit('delivererInfoRes', Object.values(snapshot.val()));
+		if (snapshot.val() !== null)
+      		socket.emit('delivererInfoRes', Object.values(snapshot.val()));
     })
   })
 
@@ -365,22 +365,48 @@ io.on('connection', function(socket){
 		})
 	})
 
-  socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
+	socket.on('updateCalcCache', function(userID, cacheData) {
+		adminInfo.child(userID).child('calcCache').set(cacheData);
+	})
+
+	socket.on('getCalcCache', function(userID) {
+		adminInfo.child(userID).child('calcCache').once('value', function(snapshot) {
+			if (snapshot.val()) {
+				socket.emit('calcCacheRes', snapshot.val());
+			}
+		})
+	})
+
+  	socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
 		var req = require('unirest')("POST", 'http://35.239.86.72:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
-		var toSend = {matrix: distanceMatrix, options: _options};
-		req.send(JSON.stringify(toSend));
-		req.then((response) => {
-			if ('error' in response.body) {
-				console.log(response.body.error);
-			}
-			var update = {};
-			response.body.start = start;
-			update[userID] = response.body;
-			update[userID].coords = locs;
-			lastCalc.update(update);
-			writeToSheet(_options.spreadsheetid, response.body, _options.shouldGenerateTravelTimes);
-	  })
+		
+		var afterAutoFill = function(opts) {
+			var toSend = {matrix: distanceMatrix, options: opts};
+			req.send(JSON.stringify(toSend));
+			req.then((response) => {
+				if ('error' in response.body) {
+					console.log(response.body.error);
+				}
+				var update = {};
+				response.body.start = start;
+				update[userID] = response.body;
+				update[userID].coords = locs;
+				lastCalc.update(update);
+				writeToSheet(opts.spreadsheetid, response.body, opts.shouldGenerateTravelTimes);
+			})
+		}
+
+		if (_options.delivererCount < 0) {
+			adminInfo.child(userID).child('volunteers').once('value', function(snap) {
+				if (snap.val() !== null) {
+					_options.delivererCount = Object.values(snap.val()).length;
+					afterAutoFill(_options);
+				}
+			})
+		} else {
+			afterAutoFill(_options);
+		}
 	});
 });
 
