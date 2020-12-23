@@ -85,11 +85,21 @@ def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
 
     # Define cost of each arc.
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+    
+    # to not drop routes removes limiting constraints
+    dropRoutes = False
+    if not dropRoutes:
+        matrixSum = 0
+        for i in range(len(data['distance_matrix'])):
+            for j in range(len(data['distance_matrix'][0])):
+                matrixSum += data['distance_matrix'][i][j]
+        maxTime = matrixSum
+        data['vehicle_capacities'] = len(data['distance_matrix'])
 
     dimension_name = 'Distance'
     routing.AddDimension(
         transit_callback_index,
-        5,  # no slack
+        5,  # no slack #KC 12/20 I'd like to see this configurable from user side as expected wait/stop
         maxTime,  # vehicle maximum travel distance
         True,  # start cumul to zero
         dimension_name)
@@ -108,13 +118,13 @@ def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
         True,  # start cumul to zero
         'Capacity')
 
-    penalty = 1000
+    penalty = 1000 # should be sum of distance matrix
     for node in range(1, len(data['distance_matrix'])):
         routing.AddDisjunction([manager.NodeToIndex(node)], penalty)
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-    search_parameters.time_limit.seconds = 15
+    search_parameters.time_limit.seconds = 30
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
 
