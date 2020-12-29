@@ -11,30 +11,34 @@
 <body>
   <section class = "title">
     <h1 style = "text-align: center; font-size: 4em;">Fresh Produce Program Smart Routes</h1>
-    <img style="width: 100%;" src = "resources/images/foodbankai.png"></img>
     <div class = "login-signup-container">
-      <a href = "login.html">Login</a>
-      <a href = "signup.html">Register</a>
+      <a href = "login">Login</a>
+      <a href = "signup">Register</a>
     </div>
   </section>
   <section class = "description">
     <div class = "text">
-      <h2>There's a Problem</h2>
-      <p>Due to the mass demand for food due to the lockdown and COVID-19, a lot of food shelters have been running out of food.</p>
-      <h2>How can we solve this?</h2>
-      <p>Rather than trying to convince a lot of people to donate which never really works, we can create a more efficient way to manage food in the food banks so that we don’t run out as quick</p>
-      <h2>What does our website do?</h2>
+      <h2>Feautures</h2>
       <ul>
-        <li>The website is to be used by the government and food bank chains to see the amount of food in each bank, gather inventory, see how food should be transported on trucks, and the AI handles all of the code concerning to which food shelters food should be sent, how buses should be packed and their routes, while taking into account the needs of the clients</li>
-        <li>The app is to be used by homeless people or anyone else who needs food from food banks to select a well balanced meal from what is in the closest bank as well as track whether they’re getting the proper amount of calories and nutrients or not.</li>
+        <li>Route generation based on
+          <ul>
+            <li>Patient Addresses</li>
+            <li>Depot Address</li>
+            <li>Volunteer Addresses (optional)</li>
+          </ul>
+        </li>
+        <li>Visualize patient & volunteer addresses on map</li>
+        <li>Visualize generated Routes in website</li>
+        <li>Fill google sheets doc with generated routes</li>
       </ul>
-      <h2>How does it work?</h2>
+      <h2>In Production</h2>
       <ul>
-        <li>Website made with HTML, JS, CSS, Node.js, and Socket.io, and uses Paccurate API to find percentage of space used by food shelters, how food should fit in the trucks, and which food shelters the food should be sent to</li>
-        <li>App made with QT, C++ and gets client info and suggestions and sends requests to server</li>
-        <li>AI Written in python and figures out which food shelters food should be transported to based on distance to near homeless shelters and how filled up they are, routes for buses, and much more</li>
+        <li>Route generation with several depot addresses</li>
+        <li>Easier manual manipulation after route generation</li>
+        <li>Create new google sheets doc rather than modifying existing one</li>
       </ul>
     </div>
   </section>
+  <script src = "resources/js/cookies.js"></script>
 </body>
 </html>

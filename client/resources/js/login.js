@@ -11,7 +11,7 @@ function logIn() {
   socket.on('userRegistered', function(isRegistered, isAdmin) {
     if (isAdmin) {
       firebase.auth().signInWithEmailAndPassword(email.value, password.value).then(auth => {
-        window.location = 'main.html';
+        window.location = 'main';
       }).catch(error => {
         console.log('incorrect password');
       });
@@ -19,7 +19,7 @@ function logIn() {
       if (isRegistered) {
         firebase.auth().createUserWithEmailAndPassword(email.value, password.value).then(auth => {
           socket.emit('createDeliverer', auth.user.uid, email.value);
-          window.location.href = 'main.html';
+          window.location.href = 'main';
         });
       } else {
         window.alert('If you are an administrator, you have not created an account yet. Otherwise, please double check with your administrator to make sure you are using the correct email address and whether you have been registered or not.');

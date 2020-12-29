@@ -13,7 +13,7 @@ initializeFirebase();
 function signUp() {
   firebase.auth().createUserWithEmailAndPassword(email.value, password.value).then(auth => {
     socket.emit('createAdmin', auth.user.uid, email.value, accountPassword.value);
-    window.location = 'login.html';
+    window.location = 'login';
   }).catch(error => {
     alert(error.message);
   })

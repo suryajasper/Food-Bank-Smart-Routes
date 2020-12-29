@@ -1,6 +1,57 @@
 initializeFirebase();
 var socket = io();
 
+var userID;
+firebase.auth().onAuthStateChanged(function(user) {
+  userID = user.uid;
+  socket.emit('bruhAmIAdminOrNot', userID);
+  socket.on('youAreNotTheAdmin', function(isAdmin) {
+    if (isAdmin) {
+      document.getElementById('showIfAdmin').style.display = 'block';
+      handleAdmin();
+    }
+  })
+})
+
+String.prototype.replaceAll = function(toReplace, replaceWith) {
+  var replaced = this.replace(toReplace, replaceWith);
+  while (replaced.includes(toReplace)) {
+    replaced = replaced.replace(toReplace, replaceWith);
+  }
+  return replaced;
+}
+
+/*---------------For Debugging only (don't include in final version)------------*/
+
+function updateDatabase(path, data) {
+  if (typeof(path) == 'string') {
+    path = path.split('/');
+  }
+  socket.emit('updateDatabase', path, data);
+}
+
+function setDatabase(path, data) {
+  if (typeof(path) == 'string') {
+    path = path.split('/');
+  }
+  socket.emit('setDatabase', path, data);
+}
+
+function getDatabase(path, callback) {
+  if (typeof(path) == 'string') {
+    path = path.split('/');
+  }
+  socket.emit('getDatabase', path, callback);
+  socket.on('getDatabaseSuccess', function(res) {
+    if (callback)
+      callback(res);
+    else
+      console.log(res);
+  });
+}
+
+/*------------------------------------------------------------------------------*/
+
 var hidePopups = function() {
   document.getElementById('addPatientDiv').style.display = 'none';
 
@@ -30,7 +81,7 @@ function createMarkerImage(color) {
       fillOpacity: 1,
       fillColor: pinColor,
       strokeWeight: 2,
-      strokeColor: "white",
+      strokeColor: "black",
       scale: 2
   };
 
@@ -43,9 +94,7 @@ function createMarker(m) {
     map: m.map
   };
   if ('icon' in m) {
-    mapInit.icon = {
-      url: m.icon
-    };
+    mapInit.icon = m.icon;
   }
   var marker = new google.maps.Marker(mapInit);
   google.maps.event.addListener(marker, 'click', function() {
@@ -72,27 +121,37 @@ function initMapWithInfos(locs, mapname, infos) {
   }
 }
 
-function initMapWithColorsNoOverlap(locs, mapname, dropped) {
+function randInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels) {
   map = new google.maps.Map(
-      document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
+      document.getElementById(mapname), {zoom: 4, center: locMat[0][0].coord});
   var iw = new google.maps.InfoWindow();
-  for (var i = 0; i < locs.length; i++) {
-    createMarker({
-      map: map, 
-      iw: iw,
-      coord: locs[i].coord,
-      info: '<b><span style = "color: green">Patient:</span></b> ' + locs[i].address, 
-      icon: createMarkerImage("#00ff55")
-    });
-  }
-  for (var i = 0; i < dropped.length; i++) {
-    createMarker({
-      map: map,
-      iw: iw,
-      coord: dropped[i].coord,
-      info: '<b><span style = "color: blue">Driver:</span></b> ' + dropped[i].address, 
-      icon: createMarkerImage("#00a1ff")
-    });
+  for (var j = 0; j < locMat.length; j++) {
+    var locs = locMat[j];
+    var color;
+    if (colors) {
+      color = colors[j];
+    } else {
+      color = 'rgb(' + randInt(30, 220).toString() + ',' + randInt(30, 220).toString() + ',' + randInt(30, 220).toString() + ')';
+    }
+    for (var i = 0; i < locs.length; i++) {
+      var markObj = {
+        map: map, 
+        iw: iw,
+        coord: locs[i].coord,
+        info: locs[i].address, 
+        icon: createMarkerImage(color)
+      }; // '<b><span style = "color: green">Patient:</span></b> ' +
+      if (prefaceLabels) {
+        markObj.info = prefaceLabels[j] + markObj.info;
+      }
+      createMarker(markObj);
+    }
   }
 }
 
@@ -145,6 +204,29 @@ function initMapWithRoutes(locs) {
   });
   directionsRenderer.setMap(map);
   calculateAndDisplayRoute(directionsService, directionsRenderer, locs);
+  for (var i = 0; i < locs.length; i++) {
+    locs[i] = locs[i].replaceAll(' ', '+');
+  }
+  var url = 'https://www.google.com/maps/dir/?api=1&';
+  url += 'origin=' + locs[0] + '&';
+  url += 'destination=' + locs[locs.length-1]
+  if (locs.length > 2) {
+    url += '&travelmode=driving&waypoints=';
+    url += locs[1];
+    for (var i = 2; i < locs.length-1; i++) {
+      url += '%7C' + locs[i];
+    }
+  };
+  document.getElementById('routeUrl').href = url;
+  document.getElementById('copyMapUrl').onclick = function() {
+    var copyText = document.createElement("input");
+    document.body.appendChild(copyText);
+    copyText.value = url;
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    copyText.remove();
+  }
 }
 function initMapWithMultipleRoutes(locsArr) {
   var directionsService = new google.maps.DirectionsService();
@@ -264,8 +346,26 @@ function deliveryRoutes() {
     fillSelect('lastSelect', solution.routes.length);
     document.getElementById('lastSelect').value = '1';
     document.getElementById('lastSelect').oninput = function() {
-      if (!isNaN(this.value)) {
+      if (!isNaN(this.value)) { // if it's a number
         initMapWithRoutes(solution.routes[parseInt(this.value)]);
+      } else {
+        var solClone = Object.assign({}, solution);
+        var patientAddToCoord = {};
+        patientAddToCoord[solClone.addresses[0]] = solClone.start;
+        for (var patientObj of solClone.coords) {
+          patientAddToCoord[patientObj.address] = patientObj.coord;
+        }
+        for (var driver = 0; driver < solClone.routes.length; driver++) {
+          for (var address = 0; address < solClone.routes[driver].length; address++) {
+            var addressAct = solClone.routes[driver][address];
+            solClone.routes[driver][address] = {
+              coord: patientAddToCoord[addressAct],
+              address: addressAct
+            };
+          }
+        }
+        console.log(solClone.routes);
+        initMapWithColorsNoOverlap('lastMapRoutes', solution.routes);
       }
     }
     initMapWithRoutes(solution.routes[0]);
@@ -284,7 +384,7 @@ function setSelected(ind) {
         div.children[i].classList.remove('switchActive');
         div.children[i].classList.add('switchNotActive');
       } sow++;
-    }
+    } else break;
   }
 }
 
@@ -482,7 +582,7 @@ function handleAdmin() {
         console.log(volunteers);
         document.getElementById('mapView').style.display = 'block';
         //console.log(locs, locsVolunteer);
-        initMapWithColorsNoOverlap(patients, 'mapView', volunteers);
+        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
       })
     })
   }
@@ -576,18 +676,6 @@ document.getElementById('routes').onclick = function(e) {
 }
 
 hidePopups();
-
-var userID;
-firebase.auth().onAuthStateChanged(function(user) {
-  userID = user.uid;
-  socket.emit('bruhAmIAdminOrNot', userID);
-  socket.on('youAreNotTheAdmin', function(isAdmin) {
-    if (isAdmin) {
-      document.getElementById('showIfAdmin').style.display = 'block';
-      handleAdmin();
-    }
-  })
-})
 
 socket.on('reporterror', function(msg) {
   window.alert(msg);

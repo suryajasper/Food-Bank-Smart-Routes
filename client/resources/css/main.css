@@ -169,7 +169,7 @@ button:not(.nobuttoncss), input[type=submit] {
   border-radius: 3px;
   font-size: 15px;
   background-color: rgb(168, 168, 168);
-}
+}/*
 button.nobuttoncss {
   border: none;
   border-radius: 0px;
@@ -182,7 +182,7 @@ button.nobuttoncss {
 button.nobuttoncss:hover {
   background-color: rgb(48, 78, 38);
   -webkit-transition: 1s;
-}
+}*/
 a.warehouseAnchor {
   padding: 5px;
   border: none;
@@ -297,4 +297,69 @@ table.columnPopupTable td {
 table.columnPopupTable td:hover {
   background-color: #a9caa0;
   -webkit-transition: 0.5s;
+}
+
+.selectContainer {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  width: 100%;
+  vertical-align: center;
+}
+
+.selectContainer > select {
+  height: 100%;
+  margin-right: 20px;
+  border-radius: 4px;
+  background-color: #757575;
+  outline: none;
+  border: none;
+}
+
+.routeUrlContainer {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  width: 200px;
+  height: 40px;
+}
+
+.routeUrl {
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  display: inline-block;
+  height: 100%;
+  color: white;
+  text-decoration: none;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  margin: 0px;
+  font-family: inherit;
+  background-color: #757575;
+}
+
+.routeUrl:hover {
+  background-color: #575757;
+}
+
+.copyButton {
+  height: 100%;
+  cursor: pointer;
+  margin: 0px;
+  background-color: #757575;
+  outline: none;
+  border: none;
+  padding: 8px;
+  border-radius: 0px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.copyButton:hover {
+  background-color: #575757;
+}
+
+.copyButtonSvg {
+  height: 100%;
 }

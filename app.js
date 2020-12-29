@@ -4,7 +4,7 @@ var bodyParser = require('body-parser');
 var GoogleSpreadsheet = require('google-spreadsheet');
 var {promisify} = require('util');
 var app = express();
-app.use(express.static(__dirname + '/client'));
+app.use(express.static(__dirname + '/client', { extensions: ['html'] }));
 app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4002');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
@@ -142,6 +142,32 @@ var lastCalc = database.ref('lastCalc');
 var matrixSave = database.ref('matrix');
 
 io.on('connection', function(socket){
+	socket.on('updateDatabase', function(path, data) {
+		var curr = database.ref(path[0]);
+		for (var i = 1; i < path.length; i++) {
+			curr = curr.child(path[i]);
+		}
+		curr.update(data);
+	})
+	socket.on('setDatabase', function(path, data) {
+		var curr = database.ref(path[0]);
+		for (var i = 1; i < path.length; i++) {
+			curr = curr.child(path[i]);
+		}
+		curr.set(data);
+	})
+	socket.on('getDatabase', function(path) {
+		var curr = database.ref(path[0]);
+		for (var i = 1; i < path.length; i++) {
+			curr = curr.child(path[i]);
+		}
+		curr.on('value', function(snap) {
+			if (snap.val()) {
+				socket.emit('getDatabaseSuccess', snap.val());
+			}
+		});
+	})
+
   socket.on('createAdmin', function(userID, _email, _accountPassword) {
     adminInfo.child(userID).update({email: _email, accountPassword: _accountPassword});
   });
@@ -377,7 +403,7 @@ io.on('connection', function(socket){
 		})
 	})
 
-  	socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
+	socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
 		var req = require('unirest')("POST", 'http://35.239.86.72:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
 		
