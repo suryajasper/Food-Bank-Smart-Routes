@@ -320,6 +320,7 @@ function fillSelect(name, length) {
 }
 
 function droppedLocations() {
+  socket.off('lastCalcRes');
   document.getElementById('view').style.display = 'none';
   document.getElementById('lastMapRoutes').style.display = 'none';
   document.getElementById('lastCalcBody').style.display = 'block';
@@ -335,6 +336,7 @@ function droppedLocations() {
 }
 
 function deliveryRoutes() {
+  socket.off('lastCalcRes');
   document.getElementById('view').style.display = 'none';
   document.getElementById('lastMap').style.display = 'none';
   document.getElementById('lastMapRoutes').style.display = 'block';
@@ -572,13 +574,15 @@ function handleAdmin() {
       e.preventDefault();
       socket.emit('removeAllAddresses', userID);
     }
+    socket.off('volunteerRes');
+    socket.off('patientRes');
     document.getElementById('view').style.display = 'block';
     document.getElementById('lastCalcBody').style.display = 'none';
     socket.emit('getPatients', userID);
     socket.on('patientRes', function(patients) {
       console.log(patients);
       socket.emit('getVolunteers', userID);
-      socket.on('volunteerRes', function(volunteers) {
+      socket.once('volunteerRes', function(volunteers) {
         console.log(volunteers);
         document.getElementById('mapView').style.display = 'block';
         //console.log(locs, locsVolunteer);
@@ -618,6 +622,11 @@ document.getElementById('routes').onclick = function(e) {
   document.getElementById('driverNumberAuto').oninput = updateInputField;
   document.getElementById('confirmCalculation').onclick = function(e2){
     e2.preventDefault();
+
+    socket.off('coordinatesRes');
+    socket.off('distanceMatrixRes');
+    socket.off('patientRes');
+
     var inputs = ['depotAddressIn', 'maxTime', 'maxDest', 'numDeliv', 'linkToSpreadsheet'];
 
     // cache it
