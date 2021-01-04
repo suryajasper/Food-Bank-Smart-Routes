@@ -480,10 +480,16 @@ function viewAddresses() {
       document.getElementById('mapView').style.display = 'block';
       //console.log(locs, locsVolunteer);
       if (patients && volunteers) {
+        document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
+        document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
         initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
       } else if (patients) {
+        document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
+        document.getElementById('volunteerCount').innerHTML = '0 Volunteer Addresses';
         initMapWithColorsNoOverlap('mapView', [patients], ['green'], ['<b><span style = "color: green">Patient:</span></b> '] );
       } else if (volunteers) {
+        document.getElementById('patientCount').innerHTML = '0 Patient Addresses';
+        document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
         initMapWithColorsNoOverlap('mapView', [volunteers], ['blue'], ['<b><span style = "color: blue">Driver:</span></b> '] );
       }
     })
