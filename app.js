@@ -18,6 +18,27 @@ var port = process.env.PORT || 4002;
 //var node_or_tools = require('node_or_tools');
 var util = require('util');
 
+const TerminalColors = {
+	BLACK : "\x1b[30m%s\x1b[0m",
+	RED : "\x1b[31m%s\x1b[0m",
+	GREEN : "\x1b[32m%s\x1b[0m",
+	YELLOW : "\x1b[33m%s\x1b[0m",
+	BLUE : "\x1b[34m%s\x1b[0m",
+	MAGENTA : "\x1b[35m%s\x1b[0m",
+	CYAN : "\x1b[36m%s\x1b[0m",
+	WHITE : "\x1b[37m%s\x1b[0m"
+} // ex: console.log(TerminalColors.RED, 'error');
+
+Object.freeze(TerminalColors);
+
+String.prototype.replaceAll = function(toReplace, replaceWith) {
+  var replaced = this.replace(toReplace, replaceWith);
+  while (replaced.includes(toReplace)) {
+    replaced = replaced.replace(toReplace, replaceWith);
+  }
+  return replaced;
+}
+
 function replaceAll(orig, toReplace, replaceWith) {
   var replaced = orig.replace(toReplace, replaceWith);
   while (replaced.includes(toReplace)) {
@@ -36,6 +57,7 @@ function getCoordinates(address) {
 
 var serviceAccount = require("../secret/food-bank-smart-routes-service-account.json");
 var googleDrive_serviceAccount = require("../secret/googledrivekey.json");
+const { Console } = require('console');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -118,7 +140,7 @@ async function writeToSheet(id, sol, shouldGenerateTravelTimes) {
 			for (var i = 0; i < sol.routes.length; i++) {
 				var row = {Time: sol.times[i].toString()};
 				for (var j = 0; j < sol.routes[i].length; j++) {
-					row['Destination ' + (j+1).toString()] = sol.routes[i][j];
+					row['Destination ' + (j+1).toString()] = sol.routes[i][j].trim();
                 }
                 if (shouldGenerateTravelTimes) {
                     for (var j = 0; j < indTimes[i].length; j++) {
@@ -170,7 +192,7 @@ io.on('connection', function(socket){
 
   socket.on('createAdmin', function(userID, _email, _accountPassword) {
     adminInfo.child(userID).update({email: _email, accountPassword: _accountPassword});
-  });
+	});
   socket.on('createDeliverer', function(userID, _email) {
     deliverInfo.child(userID).set({email: _email});
   })
@@ -211,14 +233,15 @@ io.on('connection', function(socket){
 		socket.emit('reporterror', msg);
 	}
   socket.on('getCoordinatesMult', function(addresses) {
-    var unirest = require("unirest");
+		var unirest = require("unirest");
+		console.log('--RECEIVED coordinates mult: ' + addresses.length.toString() + ' addresses');
     var results = addresses.map(function(address) {
       return new Promise(function(resolve, reject) {
         var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
         req.end(function(res) {resolve(res); });
         return req;
       });
-    });
+		});
     Promise.all(results).then(function(result) {
       var locations = [];
 			var _addresses = [];
@@ -243,64 +266,76 @@ io.on('connection', function(socket){
 					_addresses.push(addresses[ind]);
 	        return loc.body;
 				}
-      });
+			});
+			var good = true;
+			for (var i = 0; i < _addresses.length; i++) {
+				if (addresses[i] != _addresses[i]) {
+					good = false;
+					break;
+				}
+			}
+			if (good) {
+				console.log(TerminalColors.GREEN, '--API coordinates mult Success');
+			} else {
+				console.log(TerminalColors.RED, '--API coordinates mult Failed');
+			}
       socket.emit('coordinatesMultRes', locations, _addresses);
+			console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
     });
   });
   socket.on('addAddresses', function(userID, locs, type) {
-	if (!type) type = 'patients';
+		if (!type) type = 'patients';
+		console.log('--RECEIVED patient addresses: ' + locs.length.toString() + ' locations');
     adminInfo.child(userID).child(type).once('value', function(snapshot) {
-      var update = {};
+			var update = {};
       if (snapshot.val() === null) {
-        for (var i = 0; i < locs.length; i++) {
-          update[i] = locs[i];
-        } adminInfo.child(userID).child(type).update(update);
+				for (var i = 0; i < locs.length; i++)
+					update[i] = locs[i];
       } else {
 				var offset = Object.keys(snapshot.val()).length;
-        for (var i = 0; i < locs.length; i++) {
-          update[offset+i] = locs[i];
-        } adminInfo.child(userID).child(type).update(update);
-      }
+        for (var i = 0; i < locs.length; i++)
+					update[offset+i] = locs[i];
+			}
+			adminInfo.child(userID).child(type).update(update).then(function() {
+				console.log(TerminalColors.GREEN, '--UPDATE_DATABASE patient addresses SUCCESS');
+			}).catch(function(error) {
+				console.log(TerminalColors.RED, '--UPDATE_DATABASE patient addresses FAILED');
+			});
     })
-  });
-  socket.on('addDeliveryPeople', function(userID, locs) {
-    adminInfo.child(userID).child('confirmedUsers').update(locs);
   });
   socket.on('removeAllAddresses', function(userID, type) {
 	  if (!type) type = 'patients';
     adminInfo.child(userID).child(type).remove();
 		matrixSave.child(userID).remove();
-  });
+		console.log('--REMOVE_DATABASE ' + type + ' addresses');
+	});
+	
 	socket.on('removeMatrixSave', function(userID) {
 		matrixSave.child(userID).remove();
+		console.log('--REMOVE_DATABASE matrix save');
   });
-  socket.on('removeAllDeliveryPeople', function(userID) {
-    adminInfo.child(userID).child('confirmedUsers').remove();
-  })
-  socket.on('getDeliverersInfo', function(userID) {
-    adminInfo.child(userID).child('confirmedUsers').once('value', function(snapshot) {
-		if (snapshot.val() !== null)
-      		socket.emit('delivererInfoRes', Object.values(snapshot.val()));
-    })
-  })
-
-  socket.on('confirmDeliveryAddress', function(userID, loc) {
-    deliverInfo.child(userID).update({location: loc});
-  })
 
   socket.on('getPatients', function(userID) {
+		console.log('--REQUEST patients');
     adminInfo.child(userID).child('patients').once('value', function(snapshot) {
-      if (snapshot.val() !== null) {
+			if (snapshot.val() !== null) {
+				console.log(TerminalColors.GREEN, '--SEND patients SUCCESS');
         socket.emit('patientRes', snapshot.val());
-      }
+      } else {
+				console.log(TerminalColors.RED, '--SEND patients FAILED (no patients)');
+			}
     })
   })
 
   socket.on('getVolunteers', function(userID) {
+		console.log('--REQUEST volunteers');
     adminInfo.child(userID).child('volunteers').once('value', function(snapshot) {
       if (snapshot.val() !== null) {
+				console.log(TerminalColors.GREEN, '--SEND volunteers SUCCESS');
         socket.emit('volunteerRes', snapshot.val());
-      }
+      } else {
+				console.log(TerminalColors.RED, '--SEND volunteers FAILED (no volunteers)');
+			}
     })
   })
 
@@ -308,7 +343,7 @@ io.on('connection', function(socket){
 		matrixSave.child(userID).once('value', function(bigsnapshot) {
 			if (bigsnapshot.val() !== null) {
 				socket.emit('distanceMatrixRes', bigsnapshot.val());
-				console.log('we have a save');
+				console.log('--SEND previous distance matrix');
 			} else {
 				adminInfo.child(userID).child('patients').once('value', function(snapshot) {
 					var locations = Object.values(snapshot.val());
@@ -361,10 +396,12 @@ io.on('connection', function(socket){
 							console.log('returned');
 							times[0][0] = 0;
 							socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
+							console.log('--SEND distance matrix (25+)');
+							console.log('sent')
 							matrixSave.child(userID).set({times: times, formattedAddresses: formattedAddresses});
 						});
 					}
-
+					
 					else {
 						var req = distanceMatrix(locations, locations);
 						req.end(function(res) {
@@ -373,11 +410,12 @@ io.on('connection', function(socket){
 			          if (destination.originIndex in times) {
 			            times[destination.originIndex].push(parseFloat(destination.travelDuration));
 			          } else {
-			            times[destination.originIndex] = [parseFloat(destination.travelDuration)];
+									times[destination.originIndex] = [parseFloat(destination.travelDuration)];
 			          }
 			        } times = Object.values(times);
 							socket.emit('distanceMatrixRes', {times: times, formattedAddresses: formattedAddresses});
 							matrixSave.child(userID).set({times: times, formattedAddresses: formattedAddresses});
+							console.log('--SEND distance matrix (<25)');
 						})
 					}
 		    });
@@ -387,10 +425,15 @@ io.on('connection', function(socket){
 
 	socket.on('lastCalc', function(userID) {
 		lastCalc.child(userID).once('value', function(snapshot) {
-			socket.emit('lastCalcRes', snapshot.val());
+			if (snapshot.val()) {
+				socket.emit('lastCalcRes', snapshot.val());
+				console.log(TerminalColors.GREEN, '--SEND lastCalc succeeded');
+			} else {
+				console.log(TerminalColors.RED, '--SEND lastCalc failed');
+			}
 		})
 	})
-
+	
 	socket.on('updateCalcCache', function(userID, cacheData) {
 		adminInfo.child(userID).child('calcCache').set(cacheData);
 	})
@@ -402,27 +445,30 @@ io.on('connection', function(socket){
 			}
 		})
 	})
-
+	
 	socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
-		var req = require('unirest')("POST", 'http://35.239.86.72:4003/vrp');
+		var req = require('unirest')("POST", 'http://localhost:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
+		
+		console.log('--GET VRP request');
 		
 		var afterAutoFill = function(opts) {
 			var toSend = {matrix: distanceMatrix, options: opts};
 			req.send(JSON.stringify(toSend));
 			req.then((response) => {
 				if ('error' in response.body) {
-					console.log(response.body.error);
+					console.log(TerminalColors.RED, 'VRP failed: ' + response.body.error);
 				}
 				var update = {};
 				response.body.start = start;
 				update[userID] = response.body;
 				update[userID].coords = locs;
 				lastCalc.update(update);
+				console.log(TerminalColors.GREEN, '--WRITE VRP to sheet: ' + 'https://docs.google.com/spreadsheets/d/' + opts.spreadsheetid);
 				writeToSheet(opts.spreadsheetid, response.body, opts.shouldGenerateTravelTimes);
 			})
 		}
-
+		
 		if (_options.delivererCount < 0) {
 			adminInfo.child(userID).child('volunteers').once('value', function(snap) {
 				if (snap.val() !== null) {
@@ -437,5 +483,5 @@ io.on('connection', function(socket){
 });
 
 http.listen(port, function(){
-  console.log('listening on 127.0.0.1/' + port.toString());
+	console.log('listening on 127.0.0.1:' + port.toString());
 });

@@ -572,7 +572,8 @@ function handleAdmin() {
     e.preventDefault();
     document.getElementById('removeAll').onclick = function(e) {
       e.preventDefault();
-      socket.emit('removeAllAddresses', userID);
+      socket.emit('removeAllAddresses', userID, 'patients');
+      socket.emit('removeAllAddresses', userID, 'volunteers');
     }
     socket.off('volunteerRes');
     socket.off('patientRes');
@@ -636,18 +637,21 @@ document.getElementById('routes').onclick = function(e) {
       numDeliv: document.getElementById('numDeliv').value
     });
 
-    var allGood = true;
+    var allGood = true;/*
     for (var inp of inputs) {
       if (document.getElementById(inp).value === '') {
         allGood = false;
       }
-    }
+    }*/
+    console.log('checking');
     if (allGood) {
       document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
       document.getElementById('confirmCalculation').disabled = true;
       var tempsawe = document.getElementById('depotAddressIn').value;
+      console.log('all good');
       socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
       socket.on('coordinatesRes', function(start) {
+        console.log('coordinats');
         // get driver locations
         socket.emit('getDistanceMatrix', userID, start);
         socket.on('distanceMatrixRes', function(res) {
