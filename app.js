@@ -297,9 +297,10 @@ io.on('connection', function(socket){
 					update[offset+i] = locs[i];
 			}
 			adminInfo.child(userID).child(type).update(update).then(function() {
-				console.log(TerminalColors.GREEN, '--UPDATE_DATABASE patient addresses SUCCESS');
+				console.log(TerminalColors.GREEN, '--UPDATE_DATABASE ' + type + ' addresses SUCCESS');
+				socket.emit('addAddressesSuccess');
 			}).catch(function(error) {
-				console.log(TerminalColors.RED, '--UPDATE_DATABASE patient addresses FAILED');
+				console.log(TerminalColors.RED, '--UPDATE_DATABASE ' + type + ' addresses FAILED');
 			});
     })
   });
@@ -322,7 +323,8 @@ io.on('connection', function(socket){
 				console.log(TerminalColors.GREEN, '--SEND patients SUCCESS');
         socket.emit('patientRes', snapshot.val());
       } else {
-				console.log(TerminalColors.RED, '--SEND patients FAILED (no patients)');
+				console.log(TerminalColors.RED, '--SEND patients  (no patients)');
+				socket.emit('patientRes', null);
 			}
     })
   })
@@ -334,7 +336,8 @@ io.on('connection', function(socket){
 				console.log(TerminalColors.GREEN, '--SEND volunteers SUCCESS');
         socket.emit('volunteerRes', snapshot.val());
       } else {
-				console.log(TerminalColors.RED, '--SEND volunteers FAILED (no volunteers)');
+				console.log(TerminalColors.RED, '--SEND volunteers NULL (no volunteers)');
+				socket.emit('volunteerRes', null);
 			}
     })
   })

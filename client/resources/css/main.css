@@ -363,3 +363,12 @@ table.columnPopupTable td:hover {
 .copyButtonSvg {
   height: 100%;
 }
+
+.inline-children {
+  display: block;
+}
+
+.inline-children > * {
+  display: inline-block;
+  margin-right: 5px;
+}

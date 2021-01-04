@@ -450,6 +450,46 @@ function extractRange(data, callback) {
   }
 }
 
+function viewAddresses() {
+  document.getElementById('removeAll').onclick = function(e) {
+    e.preventDefault();
+    socket.emit('removeAllAddresses', userID, 'patients');
+    socket.emit('removeAllAddresses', userID, 'volunteers');
+    viewAddresses();
+  }
+  document.getElementById('removePatients').onclick = function(e) {
+    e.preventDefault();
+    socket.emit('removeAllAddresses', userID, 'patients');
+    viewAddresses();
+  }
+  document.getElementById('removeVolunteers').onclick = function(e) {
+    e.preventDefault();
+    socket.emit('removeAllAddresses', userID, 'volunteers');
+    viewAddresses();
+  }
+  socket.off('volunteerRes');
+  socket.off('patientRes');
+  document.getElementById('view').style.display = 'block';
+  document.getElementById('lastCalcBody').style.display = 'none';
+  socket.emit('getPatients', userID);
+  socket.on('patientRes', function(patients) {
+    console.log(patients);
+    socket.emit('getVolunteers', userID);
+    socket.once('volunteerRes', function(volunteers) {
+      console.log(volunteers);
+      document.getElementById('mapView').style.display = 'block';
+      //console.log(locs, locsVolunteer);
+      if (patients && volunteers) {
+        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
+      } else if (patients) {
+        initMapWithColorsNoOverlap('mapView', [patients], ['green'], ['<b><span style = "color: green">Patient:</span></b> '] );
+      } else if (volunteers) {
+        initMapWithColorsNoOverlap('mapView', [volunteers], ['blue'], ['<b><span style = "color: blue">Driver:</span></b> '] );
+      }
+    })
+  })
+}
+
 function handleAdmin() {
   var locations = [];
   var emails = [];
@@ -506,7 +546,9 @@ function handleAdmin() {
                 seq.addAddressesButton.disabled = false;
                 seq.addAddressesButton.onclick = function(e) {
                   e.preventDefault();
+                  socket.off('addAddressesSuccess');
                   socket.emit('addAddresses', userID, locations, seq.addressType);
+                  socket.on('addAddressesSuccess', viewAddresses);
                   locations = [];
                   hidePopups();
                 }
@@ -568,29 +610,8 @@ function handleAdmin() {
     document.getElementById('addVolunteerAddress').disabled = true;
     document.getElementById('addVolunteerAddressDiv').style.display = 'block';
   }
-  document.getElementById('viewPatient').onclick = function(e) {
-    e.preventDefault();
-    document.getElementById('removeAll').onclick = function(e) {
-      e.preventDefault();
-      socket.emit('removeAllAddresses', userID, 'patients');
-      socket.emit('removeAllAddresses', userID, 'volunteers');
-    }
-    socket.off('volunteerRes');
-    socket.off('patientRes');
-    document.getElementById('view').style.display = 'block';
-    document.getElementById('lastCalcBody').style.display = 'none';
-    socket.emit('getPatients', userID);
-    socket.on('patientRes', function(patients) {
-      console.log(patients);
-      socket.emit('getVolunteers', userID);
-      socket.once('volunteerRes', function(volunteers) {
-        console.log(volunteers);
-        document.getElementById('mapView').style.display = 'block';
-        //console.log(locs, locsVolunteer);
-        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
-      })
-    })
-  }
+  document.getElementById('viewPatient').onclick = viewAddresses;
+
   document.getElementById('lastCalc').onclick = function(e) {
     e.preventDefault();
     droppedLocations();
