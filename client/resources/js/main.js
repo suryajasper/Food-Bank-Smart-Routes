@@ -41,7 +41,8 @@ function getDatabase(path, callback) {
   if (typeof(path) == 'string') {
     path = path.split('/');
   }
-  socket.emit('getDatabase', path, callback);
+  socket.off('getDatabaseSuccess');
+  socket.emit('getDatabase', path);
   socket.on('getDatabaseSuccess', function(res) {
     if (callback)
       callback(res);
@@ -101,12 +102,13 @@ function createMarker(m) {
     m.iw.setContent(m.info);
     m.iw.open(m.map, marker);
   });
+  if (m.doubleclick) {
+    google.maps.event.addListener(marker, 'dblclick', m.doubleclick);
+  }
 }
 
 function initMapWithInfos(locs, mapname, infos) {
   document.getElementById(mapname).style.display = 'block';
-  console.log(locs);
-  console.log(infos);
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
   var iw = new google.maps.InfoWindow();
@@ -127,32 +129,42 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels) {
+
+function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, onclick, ondoubleclick) {
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locMat[0][0].coord});
   var iw = new google.maps.InfoWindow();
-  for (var j = 0; j < locMat.length; j++) {
-    var locs = locMat[j];
-    var color;
-    if (colors) {
-      color = colors[j];
-    } else {
-      color = 'rgb(' + randInt(30, 220).toString() + ',' + randInt(30, 220).toString() + ',' + randInt(30, 220).toString() + ')';
-    }
-    for (var i = 0; i < locs.length; i++) {
-      var markObj = {
-        map: map, 
-        iw: iw,
-        coord: locs[i].coord,
-        info: locs[i].address, 
-        icon: createMarkerImage(color)
-      }; // '<b><span style = "color: green">Patient:</span></b> ' +
-      if (prefaceLabels) {
-        markObj.info = prefaceLabels[j] + markObj.info;
+  socket.off('colorsRes');
+  socket.emit('getColors', locMat.length);
+  socket.on('colorsRes', function(genColors) {
+    for (var j = 0; j < locMat.length; j++) (function(j) {
+      var locs = locMat[j];
+      var color;
+      if (colors) {
+        color = colors[j];
+      } else {
+        color = genColors[j];
       }
-      createMarker(markObj);
-    }
-  }
+      for (var i = 0; i < locs.length; i++) {
+        var markObj = {
+          map: map, 
+          iw: iw,
+          coord: locs[i].coord,
+          info: locs[i].address, 
+          icon: createMarkerImage(color)
+        };
+        if (prefaceLabels) {
+          markObj.info = prefaceLabels[j] + markObj.info;
+        }
+        if (ondoubleclick) {
+          markObj.doubleclick = function() {
+            ondoubleclick(j);
+          };
+        }
+        createMarker(markObj);
+      }
+    })(j)
+  });
 }
 
 function initMapWithColors(locs, mapname, dropped, start) {
@@ -195,8 +207,10 @@ function initMapWithColors(locs, mapname, dropped, start) {
   }
 }
 
-function initMapWithRoutes(locs) {
-  console.log(locs);
+function initMapWithRoutes(_locs) {
+  var locs = _locs.map(function(arr) {
+    return arr.slice();
+  });
   var directionsService = new google.maps.DirectionsService();
   var directionsRenderer = new google.maps.DirectionsRenderer();
   var map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
@@ -330,7 +344,6 @@ function droppedLocations() {
   socket.on('lastCalcRes', function(solution) {
     var addresses = Object.values(solution.addresses);
     addresses.shift();
-    console.log(addresses.length);
     initMapWithColors(Object.values(solution.coords), 'lastMap', solution.dropped, solution.start);
   })
 }
@@ -346,30 +359,36 @@ function deliveryRoutes() {
   socket.emit('lastCalc', userID);
   socket.on('lastCalcRes', function(solution) {
     fillSelect('lastSelect', solution.routes.length);
-    document.getElementById('lastSelect').value = '1';
-    document.getElementById('lastSelect').oninput = function() {
-      if (!isNaN(this.value)) { // if it's a number
-        initMapWithRoutes(solution.routes[parseInt(this.value)]);
+    function refreshSelect() {
+      var newVal = document.getElementById('lastSelect').value;
+      if (!isNaN(newVal)) { // if it's a number
+        initMapWithRoutes(solution.routes[parseInt(newVal)]);
       } else {
-        var solClone = Object.assign({}, solution);
+        var solClone = solution.routes.map(function(arr) {
+          return arr.slice();
+        });
         var patientAddToCoord = {};
-        patientAddToCoord[solClone.addresses[0]] = solClone.start;
-        for (var patientObj of solClone.coords) {
+        patientAddToCoord[solution.addresses[0]] = solution.start;
+        for (var patientObj of solution.coords) {
           patientAddToCoord[patientObj.address] = patientObj.coord;
         }
-        for (var driver = 0; driver < solClone.routes.length; driver++) {
-          for (var address = 0; address < solClone.routes[driver].length; address++) {
-            var addressAct = solClone.routes[driver][address];
-            solClone.routes[driver][address] = {
+        for (var driver = 0; driver < solClone.length; driver++) {
+          for (var address = 0; address < solClone[driver].length; address++) {
+            var addressAct = solClone[driver][address];
+            solClone[driver][address] = {
               coord: patientAddToCoord[addressAct],
               address: addressAct
             };
           }
         }
-        console.log(solClone.routes);
-        initMapWithColorsNoOverlap('lastMapRoutes', solution.routes);
+        initMapWithColorsNoOverlap('lastMapRoutes', solClone, null, null, null, function(index) {
+          document.getElementById('lastSelect').value = (index+1).toString();
+          refreshSelect();
+        });
       }
     }
+    document.getElementById('lastSelect').value = '1';
+    document.getElementById('lastSelect').oninput = refreshSelect;
     initMapWithRoutes(solution.routes[0]);
   })
 }
@@ -473,12 +492,9 @@ function viewAddresses() {
   document.getElementById('lastCalcBody').style.display = 'none';
   socket.emit('getPatients', userID);
   socket.on('patientRes', function(patients) {
-    console.log(patients);
     socket.emit('getVolunteers', userID);
     socket.once('volunteerRes', function(volunteers) {
-      console.log(volunteers);
       document.getElementById('mapView').style.display = 'block';
-      //console.log(locs, locsVolunteer);
       if (patients && volunteers) {
         document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
         document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
@@ -537,7 +553,6 @@ function handleAdmin() {
         document.getElementById(seq.csvLabel).innerHTML = 'selected';
         var file = document.getElementById(seq.csvInput).files[0];
         Papa.parse(file, {complete: function(results) {
-          console.log('csv', results.data);
           var arr2 = [];
           if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
             extractRange(results.data, function (res) {
@@ -670,15 +685,12 @@ document.getElementById('routes').onclick = function(e) {
         allGood = false;
       }
     }*/
-    console.log('checking');
     if (allGood) {
       document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
       document.getElementById('confirmCalculation').disabled = true;
       var tempsawe = document.getElementById('depotAddressIn').value;
-      console.log('all good');
       socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
       socket.on('coordinatesRes', function(start) {
-        console.log('coordinats');
         // get driver locations
         socket.emit('getDistanceMatrix', userID, start);
         socket.on('distanceMatrixRes', function(res) {

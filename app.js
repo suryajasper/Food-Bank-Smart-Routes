@@ -1,5 +1,6 @@
 var admin = require('firebase-admin');
 var express = require('express');
+var colorGen = require('iwanthue');
 var bodyParser = require('body-parser');
 var GoogleSpreadsheet = require('google-spreadsheet');
 var {promisify} = require('util');
@@ -340,7 +341,11 @@ io.on('connection', function(socket){
 				socket.emit('volunteerRes', null);
 			}
     })
-  })
+	})
+	
+	socket.on('getColors', function(count) {
+		socket.emit('colorsRes', colorGen(count));
+	})
 
   socket.on('getDistanceMatrix', function(userID, start) {
 		matrixSave.child(userID).once('value', function(bigsnapshot) {
