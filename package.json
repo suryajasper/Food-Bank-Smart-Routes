@@ -24,6 +24,7 @@
     "google-spreadsheet": "^2.0.6",
     "googleapis": "^39.2.0",
     "http": "0.0.1-security",
+    "iwanthue": "^1.4.2",
     "node_or_tools": "^1.0.7",
     "socket.io": "^2.3.0",
     "unirest": "^0.6.0",

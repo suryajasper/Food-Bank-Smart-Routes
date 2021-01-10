@@ -1,6 +1,29 @@
 :root {
   --buttonSelectActiveBorderColor: rgb(70, 89, 255);
 }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-weight: 500;
+}
+
+body * {
+  font-family: inherit;
+  font-weight: inherit;
+}
+
+body b {
+  font-weight: 800;
+}
+
+body h4 {
+  font-weight: 550;
+}
+
+body h3 {
+  font-weight:  650;
+}
+
 .center {
   margin: auto;
   text-align: center;
@@ -80,12 +103,14 @@ input[type="password"] {
   background-color: rgb(184, 184, 184);
   color: black;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 input[type="text"]:hover,
 input[type="password"]:hover {
   background-color: rgb(101, 101, 101);
   color: white;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 input[type="number"] {
   border: none;
@@ -95,6 +120,7 @@ input[type="number"] {
   background-color: rgb(184, 184, 184);
   color: black;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 input[type="number"]:disabled {
   color: #757575;
@@ -104,6 +130,7 @@ input[type="number"]:not([disabled]):hover {
   background-color: rgb(101, 101, 101);
   color: white;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 input[type="number"][disabled]:hover {
   background-color: rgb(184, 184, 184);
@@ -130,10 +157,12 @@ input[type="number"][disabled]:hover {
   cursor: pointer;
   background-color: rgb(55, 161, 123);
   -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 .addbutton:hover {
   background-color: rgb(34, 147, 109);
   -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 .bankFood {
   border: 2px solid black;
@@ -146,10 +175,12 @@ input[type="number"][disabled]:hover {
   cursor: pointer;
   width: 100%;
   -webkit-transition: 0.7s;
+  transition: 0.7s;
 }
 .bankFood:hover {
   background: rgb(147, 173, 149);
   -webkit-transition: 0.7s;
+  transition: 0.7s;
 }
 .bankFood * {
   margin-right: 5px;
@@ -164,8 +195,10 @@ input[type="number"][disabled]:hover {
 .bankFood img {
   height: 50px;
 }
-button:not(.nobuttoncss),
-input[type="submit"] {
+
+
+button:not(.nobuttoncss), input[type=submit] {
+
   margin: 5px;
   padding: 5px;
   border: none;
@@ -228,11 +261,13 @@ textarea {
   min-width: 90%;
   max-width: 90%;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 textarea:hover {
   background-color: rgb(78, 78, 78);
   color: white;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 
 /*table {
@@ -297,11 +332,13 @@ table.columnPopupTable td {
   background-color: white;
   cursor: pointer;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 
 table.columnPopupTable td:hover {
   background-color: #a9caa0;
   -webkit-transition: 0.5s;
+  transition: 0.5s;
 }
 
 .selectContainer {
@@ -368,3 +405,35 @@ table.columnPopupTable td:hover {
 .copyButtonSvg {
   height: 100%;
 }
+
+
+.inline-children {
+  display: block;
+}
+
+.inline-children > * {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.addressCounts {
+  display: block;
+  position: relative;
+  width: 100vw;
+}
+
+.addressCounts > p {
+  position: relative;
+  font-size: 1.25em;
+  font-family: inherit;
+}
+
+.addressCounts > p:first-child {
+  float: left;
+  left: 5px;
+}
+.addressCounts > p:last-child {
+  float: right;
+  right: 25px;
+}
+

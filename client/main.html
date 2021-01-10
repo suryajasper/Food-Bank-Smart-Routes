@@ -55,8 +55,20 @@ h1 {letter-spacing: 6px}
     </div></div>
   </div>
   <div id = "view" style = "display: none;">
-    <button id = "removeAll">Remove All</button>
+    <div class = "center-outside">
+      <div class = "center-div">
+        <div class = "inline-children">
+          <button id = "removeAll">Remove All</button>
+          <button id = "removePatients">Remove Patients</button>
+          <button id = "removeVolunteers">Remove Volunteers</button>
+        </div>
+      </div>
+    </div>
     <div id = "mapView" style = "width: 100vw; height: 70%;"></div>
+    <div class = "addressCounts">
+      <p style = "color: green" id = "patientCount">0 Patient Addresses</p>
+      <p style = "color: blue" id = "volunteerCount">0 Volunteer Addresses</p>
+    </div>
   </div>
   <div class = "centered">
     <div id = "addPatientDiv" class = "popup" style = " background-color: rgb(240, 239, 239);">
@@ -142,19 +154,14 @@ h1 {letter-spacing: 6px}
       </div>
     </div>
   </div>
-  <script src = "resources/js/cookies.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-database.js"></script>
   <script src = "resources/js/firebase-functions.js"></script>
   <script src = "resources/js/papaparse.min.js"></script>
   <script src = "resources/js/main.js"></script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM&callback=initMap"></script>
-  <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
 
-  <!-- Load our React component. -->
-  <script src="like_button.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM"></script>
 
 </body>
 </html>

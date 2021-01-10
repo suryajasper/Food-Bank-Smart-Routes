@@ -41,7 +41,8 @@ function getDatabase(path, callback) {
   if (typeof(path) == 'string') {
     path = path.split('/');
   }
-  socket.emit('getDatabase', path, callback);
+  socket.off('getDatabaseSuccess');
+  socket.emit('getDatabase', path);
   socket.on('getDatabaseSuccess', function(res) {
     if (callback)
       callback(res);
@@ -101,12 +102,14 @@ function createMarker(m) {
     m.iw.setContent(m.info);
     m.iw.open(m.map, marker);
   });
+  if (m.doubleclick) {
+    google.maps.event.addListener(marker, 'dblclick', m.doubleclick);
+  }
+  return marker;
 }
 
 function initMapWithInfos(locs, mapname, infos) {
   document.getElementById(mapname).style.display = 'block';
-  console.log(locs);
-  console.log(infos);
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
   var iw = new google.maps.InfoWindow();
@@ -127,64 +130,75 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels) {
+
+function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, onclick, ondoubleclick) {
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locMat[0][0].coord});
   var iw = new google.maps.InfoWindow();
-  for (var j = 0; j < locMat.length; j++) {
-    var locs = locMat[j];
-    var color;
-    if (colors) {
-      color = colors[j];
-    } else {
-      color = 'rgb(' + randInt(30, 220).toString() + ',' + randInt(30, 220).toString() + ',' + randInt(30, 220).toString() + ')';
-    }
-    for (var i = 0; i < locs.length; i++) {
-      var markObj = {
-        map: map, 
-        iw: iw,
-        coord: locs[i].coord,
-        info: locs[i].address, 
-        icon: createMarkerImage(color)
-      }; // '<b><span style = "color: green">Patient:</span></b> ' +
-      if (prefaceLabels) {
-        markObj.info = prefaceLabels[j] + markObj.info;
+  var bounds = new google.maps.LatLngBounds();
+  socket.off('colorsRes');
+  function render(_colors) {
+    console.log(_colors, locMat)
+    for (var j = 0; j < locMat.length; j++) (function(j) {
+      var locs = locMat[j];
+      var color = _colors[j];
+      for (var i = 0; i < locs.length; i++) {
+        var markObj = {
+          map: map, 
+          iw: iw,
+          coord: locs[i].coord,
+          info: locs[i].address, 
+          icon: createMarkerImage(color)
+        };
+        if (prefaceLabels) {
+          markObj.info = prefaceLabels[j] + markObj.info;
+        }
+        if (ondoubleclick) {
+          markObj.doubleclick = function() {
+            ondoubleclick(j);
+          };
+        }
+        createMarker(markObj);
+        bounds.extend(locs[i].coord);
       }
-      createMarker(markObj);
-    }
+    })(j)
+    map.fitBounds(bounds);
+  }
+  if (colors)
+    render(colors);
+  else {
+    socket.emit('getColors', locMat.length);
+    socket.on('colorsRes', render);
   }
 }
 
-function initMapWithColors(locs, mapname, dropped, start) {
+function initMapWithColors(locs, colors, mapname, dropped, start) {
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
+  var bounds = new google.maps.LatLngBounds();
   if (start) {
     var startmarker = new google.maps.Marker({
       position: start,
-      icon: {
-        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-      },
+      icon: createMarkerImage(colors[2]),
       map: map
     });
+    bounds.extend(start);
   }
   var iw = new google.maps.InfoWindow();
   for (var i = 0; i < locs.length; i++) {
-    if (dropped.includes(locs[i].address)) {
+    if (dropped && dropped.includes(locs[i].address)) {
       var marker = new google.maps.Marker({
         position: locs[i].coord,
-        icon: {
-          url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-        },
+        icon: createMarkerImage(colors[1]),
         map: map
       });
     } else {
       var marker = new google.maps.Marker({
         position: locs[i].coord,
-        icon: {
-          url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-        },
+        icon: createMarkerImage(colors[0]),
         map: map
       });
+      bounds.extend(locs[i].coord);
     }
     google.maps.event.addListener(marker, 'click', (function(marker, i) {
       return function() {
@@ -193,10 +207,13 @@ function initMapWithColors(locs, mapname, dropped, start) {
       }
     })(marker, i));
   }
+  map.fitBounds(bounds);
 }
 
-function initMapWithRoutes(locs) {
-  console.log(locs);
+function initMapWithRoutes(_locs) {
+  var locs = _locs.map(function(arr) {
+    return arr.slice();
+  });
   var directionsService = new google.maps.DirectionsService();
   var directionsRenderer = new google.maps.DirectionsRenderer();
   var map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
@@ -320,6 +337,7 @@ function fillSelect(name, length) {
 }
 
 function droppedLocations() {
+  socket.off('lastCalcRes');
   document.getElementById('view').style.display = 'none';
   document.getElementById('lastMapRoutes').style.display = 'none';
   document.getElementById('lastCalcBody').style.display = 'block';
@@ -329,12 +347,12 @@ function droppedLocations() {
   socket.on('lastCalcRes', function(solution) {
     var addresses = Object.values(solution.addresses);
     addresses.shift();
-    console.log(addresses.length);
-    initMapWithColors(Object.values(solution.coords), 'lastMap', solution.dropped, solution.start);
+    initMapWithColors(Object.values(solution.coords), ['green', 'red', 'blue'], 'lastMap', solution.dropped, solution.start);
   })
 }
 
 function deliveryRoutes() {
+  socket.off('lastCalcRes');
   document.getElementById('view').style.display = 'none';
   document.getElementById('lastMap').style.display = 'none';
   document.getElementById('lastMapRoutes').style.display = 'block';
@@ -344,30 +362,36 @@ function deliveryRoutes() {
   socket.emit('lastCalc', userID);
   socket.on('lastCalcRes', function(solution) {
     fillSelect('lastSelect', solution.routes.length);
-    document.getElementById('lastSelect').value = '1';
-    document.getElementById('lastSelect').oninput = function() {
-      if (!isNaN(this.value)) { // if it's a number
-        initMapWithRoutes(solution.routes[parseInt(this.value)]);
+    function refreshSelect() {
+      var newVal = document.getElementById('lastSelect').value;
+      if (!isNaN(newVal)) { // if it's a number
+        initMapWithRoutes(solution.routes[parseInt(newVal)]);
       } else {
-        var solClone = Object.assign({}, solution);
+        var solClone = solution.routes.map(function(arr) {
+          return arr.slice();
+        });
         var patientAddToCoord = {};
-        patientAddToCoord[solClone.addresses[0]] = solClone.start;
-        for (var patientObj of solClone.coords) {
+        patientAddToCoord[solution.addresses[0]] = solution.start;
+        for (var patientObj of solution.coords) {
           patientAddToCoord[patientObj.address] = patientObj.coord;
         }
-        for (var driver = 0; driver < solClone.routes.length; driver++) {
-          for (var address = 0; address < solClone.routes[driver].length; address++) {
-            var addressAct = solClone.routes[driver][address];
-            solClone.routes[driver][address] = {
+        for (var driver = 0; driver < solClone.length; driver++) {
+          for (var address = 0; address < solClone[driver].length; address++) {
+            var addressAct = solClone[driver][address];
+            solClone[driver][address] = {
               coord: patientAddToCoord[addressAct],
               address: addressAct
             };
           }
         }
-        console.log(solClone.routes);
-        initMapWithColorsNoOverlap('lastMapRoutes', solution.routes);
+        initMapWithColorsNoOverlap('lastMapRoutes', solClone, null, null, null, function(index) {
+          document.getElementById('lastSelect').value = (index+1).toString();
+          refreshSelect();
+        });
       }
     }
+    document.getElementById('lastSelect').value = '1';
+    document.getElementById('lastSelect').oninput = refreshSelect;
     initMapWithRoutes(solution.routes[0]);
   })
 }
@@ -448,6 +472,49 @@ function extractRange(data, callback) {
   }
 }
 
+function viewAddresses() {
+  document.getElementById('removeAll').onclick = function(e) {
+    e.preventDefault();
+    socket.emit('removeAllAddresses', userID, 'patients');
+    socket.emit('removeAllAddresses', userID, 'volunteers');
+    viewAddresses();
+  }
+  document.getElementById('removePatients').onclick = function(e) {
+    e.preventDefault();
+    socket.emit('removeAllAddresses', userID, 'patients');
+    viewAddresses();
+  }
+  document.getElementById('removeVolunteers').onclick = function(e) {
+    e.preventDefault();
+    socket.emit('removeAllAddresses', userID, 'volunteers');
+    viewAddresses();
+  }
+  socket.off('volunteerRes');
+  socket.off('patientRes');
+  document.getElementById('view').style.display = 'block';
+  document.getElementById('lastCalcBody').style.display = 'none';
+  socket.emit('getPatients', userID);
+  socket.on('patientRes', function(patients) {
+    socket.emit('getVolunteers', userID);
+    socket.once('volunteerRes', function(volunteers) {
+      document.getElementById('mapView').style.display = 'block';
+      if (patients && volunteers) {
+        document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
+        document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
+        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
+      } else if (patients) {
+        document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
+        document.getElementById('volunteerCount').innerHTML = '0 Volunteer Addresses';
+        initMapWithColorsNoOverlap('mapView', [patients], ['green'], ['<b><span style = "color: green">Patient:</span></b> '] );
+      } else if (volunteers) {
+        document.getElementById('patientCount').innerHTML = '0 Patient Addresses';
+        document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
+        initMapWithColorsNoOverlap('mapView', [volunteers], ['blue'], ['<b><span style = "color: blue">Driver:</span></b> '] );
+      }
+    })
+  })
+}
+
 function handleAdmin() {
   var locations = [];
   var emails = [];
@@ -489,7 +556,6 @@ function handleAdmin() {
         document.getElementById(seq.csvLabel).innerHTML = 'selected';
         var file = document.getElementById(seq.csvInput).files[0];
         Papa.parse(file, {complete: function(results) {
-          console.log('csv', results.data);
           var arr2 = [];
           if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
             extractRange(results.data, function (res) {
@@ -504,7 +570,9 @@ function handleAdmin() {
                 seq.addAddressesButton.disabled = false;
                 seq.addAddressesButton.onclick = function(e) {
                   e.preventDefault();
+                  socket.off('addAddressesSuccess');
                   socket.emit('addAddresses', userID, locations, seq.addressType);
+                  socket.on('addAddressesSuccess', viewAddresses);
                   locations = [];
                   hidePopups();
                 }
@@ -566,26 +634,8 @@ function handleAdmin() {
     document.getElementById('addVolunteerAddress').disabled = true;
     document.getElementById('addVolunteerAddressDiv').style.display = 'block';
   }
-  document.getElementById('viewPatient').onclick = function(e) {
-    e.preventDefault();
-    document.getElementById('removeAll').onclick = function(e) {
-      e.preventDefault();
-      socket.emit('removeAllAddresses', userID);
-    }
-    document.getElementById('view').style.display = 'block';
-    document.getElementById('lastCalcBody').style.display = 'none';
-    socket.emit('getPatients', userID);
-    socket.on('patientRes', function(patients) {
-      console.log(patients);
-      socket.emit('getVolunteers', userID);
-      socket.on('volunteerRes', function(volunteers) {
-        console.log(volunteers);
-        document.getElementById('mapView').style.display = 'block';
-        //console.log(locs, locsVolunteer);
-        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
-      })
-    })
-  }
+  document.getElementById('viewPatient').onclick = viewAddresses;
+
   document.getElementById('lastCalc').onclick = function(e) {
     e.preventDefault();
     droppedLocations();
@@ -618,6 +668,11 @@ document.getElementById('routes').onclick = function(e) {
   document.getElementById('driverNumberAuto').oninput = updateInputField;
   document.getElementById('confirmCalculation').onclick = function(e2){
     e2.preventDefault();
+
+    socket.off('coordinatesRes');
+    socket.off('distanceMatrixRes');
+    socket.off('patientRes');
+
     var inputs = ['depotAddressIn', 'maxTime', 'maxDest', 'numDeliv', 'linkToSpreadsheet'];
 
     // cache it
@@ -627,12 +682,12 @@ document.getElementById('routes').onclick = function(e) {
       numDeliv: document.getElementById('numDeliv').value
     });
 
-    var allGood = true;
+    var allGood = true;/*
     for (var inp of inputs) {
       if (document.getElementById(inp).value === '') {
         allGood = false;
       }
-    }
+    }*/
     if (allGood) {
       document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
       document.getElementById('confirmCalculation').disabled = true;
@@ -664,6 +719,7 @@ document.getElementById('routes').onclick = function(e) {
               opts.maxDest = -1;
             }
             opts.shouldGenerateTravelTimes = !!document.getElementById('travelTimesCheckbox')?.checked;
+            // console.log(userID, res.times, opts, start, addresses);
             socket.emit('vrp', userID, res.times, opts, start, addresses);
             document.getElementById('calculatePopup').style.display = 'none';
             document.getElementById('confirmCalculation').innerHTML = 'Calculate';
