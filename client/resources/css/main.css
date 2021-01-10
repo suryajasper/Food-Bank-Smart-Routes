@@ -1,5 +1,5 @@
 :root {
- --buttonSelectActiveBorderColor: rgb(70, 89, 255);
+  --buttonSelectActiveBorderColor: rgb(70, 89, 255);
 }
 
 body {
@@ -45,6 +45,7 @@ body h3 {
   border: 3px solid black;
   border-radius: 4px;
   z-index: 1000;
+  margin-top: 100px;
 }
 .overflowpopup {
   overflow-y: scroll;
@@ -59,15 +60,15 @@ body h3 {
 .center-div {
   display: inline-block;
   padding: 1em;
-  border-radius:4px;
+  border-radius: 4px;
 }
 .inputfile {
-	width: 0.1px;
-	height: 0.1px;
-	opacity: 0;
-	overflow: hidden;
-	position: absolute;
-	z-index: -1;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
 }
 
 .inputfile + label {
@@ -87,13 +88,14 @@ body h3 {
 }
 
 .inputfile:focus + label {
-	outline: 1px dotted #000;
-	outline: -webkit-focus-ring-color auto 5px;
+  outline: 1px dotted #000;
+  outline: -webkit-focus-ring-color auto 5px;
 }
 input {
   font-size: 15px;
 }
-input[type=text], input[type=password] {
+input[type="text"],
+input[type="password"] {
   border: none;
   padding: 8px;
   cursor: pointer;
@@ -103,13 +105,14 @@ input[type=text], input[type=password] {
   -webkit-transition: 0.5s;
   transition: 0.5s;
 }
-input[type=text]:hover, input[type=password]:hover {
+input[type="text"]:hover,
+input[type="password"]:hover {
   background-color: rgb(101, 101, 101);
   color: white;
   -webkit-transition: 0.5s;
   transition: 0.5s;
 }
-input[type=number] {
+input[type="number"] {
   border: none;
   padding: 8px;
   cursor: pointer;
@@ -119,17 +122,17 @@ input[type=number] {
   -webkit-transition: 0.5s;
   transition: 0.5s;
 }
-input[type=number]:disabled {
+input[type="number"]:disabled {
   color: #757575;
   cursor: not-allowed;
 }
-input[type=number]:not([disabled]):hover {
+input[type="number"]:not([disabled]):hover {
   background-color: rgb(101, 101, 101);
   color: white;
   -webkit-transition: 0.5s;
   transition: 0.5s;
 }
-input[type=number][disabled]:hover {
+input[type="number"][disabled]:hover {
   background-color: rgb(184, 184, 184);
 }
 .bank {
@@ -193,7 +196,9 @@ input[type=number][disabled]:hover {
   height: 50px;
 }
 
+
 button:not(.nobuttoncss), input[type=submit] {
+
   margin: 5px;
   padding: 5px;
   border: none;
@@ -201,7 +206,7 @@ button:not(.nobuttoncss), input[type=submit] {
   border-radius: 3px;
   font-size: 15px;
   background-color: rgb(168, 168, 168);
-}/*
+} /*
 button.nobuttoncss {
   border: none;
   border-radius: 0px;
@@ -230,11 +235,11 @@ a.warehouseAnchor {
   background: rgb(173, 173, 173);
 }
 .fill {
-	width:0%;
-	height:10px;
-	background: rgb(242, 86, 86);
-	background-size:0% 100%;
-	background-position:0 100px;
+  width: 0%;
+  height: 10px;
+  background: rgb(242, 86, 86);
+  background-size: 0% 100%;
+  background-position: 0 100px;
 }
 .loginsignup {
   border-radius: 3px;
@@ -287,7 +292,8 @@ tr:nth-child(even) {
 .groupinputs {
   background-color: rgb(214, 214, 214);
 }
-.groupinputs input,h4 {
+.groupinputs input,
+h4 {
   display: inline-block;
 }
 
@@ -400,6 +406,7 @@ table.columnPopupTable td:hover {
   height: 100%;
 }
 
+
 .inline-children {
   display: block;
 }
@@ -429,3 +436,4 @@ table.columnPopupTable td:hover {
   float: right;
   right: 25px;
 }
+

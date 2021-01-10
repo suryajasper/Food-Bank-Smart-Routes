@@ -3,24 +3,30 @@
   <title>Smart Routes</title>
   <meta charset = "utf-8" name = "viewport" content = "width=device-width, initial-scale=1.0">
   <link rel = "stylesheet" href= "resources/css/main.css">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+body,h1 {font-family: "Raleway", Arial, sans-serif}
+h1 {letter-spacing: 6px}
+.w3-row-padding img {margin-bottom: 12px}
+</style>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://www.google.com/jsapi"></script>
   <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div class = "center-outside">
-    <div class = "center-div">
-      <div id = "showIfAdmin" style = "display: none;">
-        <button id = "addPatient">Add Patients</button>
-        <button id = "addVolunteer">Add Volunteers</button>
-        <button id = "viewPatient">View Addresses</button>
-        <!--button id = "addDeliveryPerson">Add Delivery Personnel</button>
-        <button id = "viewDeliveryPerson">View Delivery Personnel</button-->
-        <button id = "routes">Find best routes</button>
-        <button id = "lastCalc">Last Calculation</button>
+  <div class="w3-panel w3-center w3-opacity" style="padding:12px 16px">
+    <h1>Route Creation Service</h1>
+      <div class="w3-bar w3-border" id = "showIfAdmin" style = "display: none">
+        <button class = "w3-bar w3-button" id = "addPatient">Add Destinations</button>
+        <button class = "w3-bar w3-button" id = "addVolunteer">Add Volunteers</button>
+        <button class = "w3-bar w3-button" id = "viewPatient">View Addresses</button>
+        <button class = "w3-bar w3-button" id = "routes">Find Best Routes</button>
+        <button class = "w3-bar w3-button" id = "lastCalc">Last Calculation</button> 
       </div>
-    </div>
   </div>
+  
   <div class = "centered">
     <div id = "confirmAddress" class = "popup" style = "background-color: rgb(240, 239, 239); display: none;">
       <div class = "center-outside">
@@ -140,7 +146,6 @@
         <div class = "center-div">
           <table class = "columnPopupTable">
             <tbody id = "columnPopupTable">
-
             </tbody>
           </table>
           <button id = "clearColumnSelection">Clear Selection</button>
@@ -155,6 +160,8 @@
   <script src = "resources/js/firebase-functions.js"></script>
   <script src = "resources/js/papaparse.min.js"></script>
   <script src = "resources/js/main.js"></script>
+
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM"></script>
+
 </body>
 </html>
