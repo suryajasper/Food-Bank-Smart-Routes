@@ -105,6 +105,7 @@ function createMarker(m) {
   if (m.doubleclick) {
     google.maps.event.addListener(marker, 'dblclick', m.doubleclick);
   }
+  return marker;
 }
 
 function initMapWithInfos(locs, mapname, infos) {
@@ -134,17 +135,13 @@ function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, oncl
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locMat[0][0].coord});
   var iw = new google.maps.InfoWindow();
+  var bounds = new google.maps.LatLngBounds();
   socket.off('colorsRes');
-  socket.emit('getColors', locMat.length);
-  socket.on('colorsRes', function(genColors) {
+  function render(_colors) {
+    console.log(_colors, locMat)
     for (var j = 0; j < locMat.length; j++) (function(j) {
       var locs = locMat[j];
-      var color;
-      if (colors) {
-        color = colors[j];
-      } else {
-        color = genColors[j];
-      }
+      var color = _colors[j];
       for (var i = 0; i < locs.length; i++) {
         var markObj = {
           map: map, 
@@ -162,41 +159,46 @@ function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, oncl
           };
         }
         createMarker(markObj);
+        bounds.extend(locs[i].coord);
       }
     })(j)
-  });
+    map.fitBounds(bounds);
+  }
+  if (colors)
+    render(colors);
+  else {
+    socket.emit('getColors', locMat.length);
+    socket.on('colorsRes', render);
+  }
 }
 
-function initMapWithColors(locs, mapname, dropped, start) {
+function initMapWithColors(locs, colors, mapname, dropped, start) {
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
+  var bounds = new google.maps.LatLngBounds();
   if (start) {
     var startmarker = new google.maps.Marker({
       position: start,
-      icon: {
-        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-      },
+      icon: createMarkerImage(colors[2]),
       map: map
     });
+    bounds.extend(start);
   }
   var iw = new google.maps.InfoWindow();
   for (var i = 0; i < locs.length; i++) {
-    if (dropped.includes(locs[i].address)) {
+    if (dropped && dropped.includes(locs[i].address)) {
       var marker = new google.maps.Marker({
         position: locs[i].coord,
-        icon: {
-          url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-        },
+        icon: createMarkerImage(colors[1]),
         map: map
       });
     } else {
       var marker = new google.maps.Marker({
         position: locs[i].coord,
-        icon: {
-          url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-        },
+        icon: createMarkerImage(colors[0]),
         map: map
       });
+      bounds.extend(locs[i].coord);
     }
     google.maps.event.addListener(marker, 'click', (function(marker, i) {
       return function() {
@@ -205,6 +207,7 @@ function initMapWithColors(locs, mapname, dropped, start) {
       }
     })(marker, i));
   }
+  map.fitBounds(bounds);
 }
 
 function initMapWithRoutes(_locs) {
@@ -344,7 +347,7 @@ function droppedLocations() {
   socket.on('lastCalcRes', function(solution) {
     var addresses = Object.values(solution.addresses);
     addresses.shift();
-    initMapWithColors(Object.values(solution.coords), 'lastMap', solution.dropped, solution.start);
+    initMapWithColors(Object.values(solution.coords), ['green', 'red', 'blue'], 'lastMap', solution.dropped, solution.start);
   })
 }
 
@@ -716,6 +719,7 @@ document.getElementById('routes').onclick = function(e) {
               opts.maxDest = -1;
             }
             opts.shouldGenerateTravelTimes = !!document.getElementById('travelTimesCheckbox')?.checked;
+            // console.log(userID, res.times, opts, start, addresses);
             socket.emit('vrp', userID, res.times, opts, start, addresses);
             document.getElementById('calculatePopup').style.display = 'none';
             document.getElementById('confirmCalculation').innerHTML = 'Calculate';
