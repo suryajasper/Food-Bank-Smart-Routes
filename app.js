@@ -6,14 +6,14 @@ var {promisify} = require('util');
 var app = express();
 app.use(express.static(__dirname + '/client', { extensions: ['html'] }));
 app.use((req, res, next) => {
-	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4002');
+	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8000');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
 	res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
 	next();
 });
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
-var port = process.env.PORT || 4002;
+var port = process.env.PORT || 8000;
 
 //var node_or_tools = require('node_or_tools');
 var util = require('util');
