@@ -15,7 +15,7 @@ h1 {letter-spacing: 6px}
   <script src="https://www.google.com/jsapi"></script>
   <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 </head>
-<body>
+<body class = "">
   <div class="w3-panel w3-center w3-opacity" style="padding:12px 16px">
     <h1>Route Creation Service</h1>
       <div class="w3-bar w3-border" id = "showIfAdmin" style = "display: none">
@@ -42,8 +42,8 @@ h1 {letter-spacing: 6px}
   <div style = "display: none;" id = "lastCalcBody">
     <button class = "switchActive" id = "droppedButton">Dropped Locations</button>
     <button class = "switchNotActive" id = "deliveryRoutesButton">Delivery Routes</button>
-    <div id = "lastMap" style = "display: none; width: 100vw; height: 70%;"></div>
-    <div id = "lastMapRoutes" style = "display: none; width: 100vw; height: 70%;"></div>
+    <div id = "lastMap" class = "map" ></div>
+    <div id = "lastMapRoutes" class = "map"></div>
     <div class = "center-outside"><div class = "center-div">
       <div class = "selectContainer">
         <select id="lastSelect" style = "display: none; width: 40vw;"></select>
@@ -64,14 +64,14 @@ h1 {letter-spacing: 6px}
         </div>
       </div>
     </div>
-    <div id = "mapView" style = "width: 100vw; height: 70%;"></div>
     <div class = "addressCounts">
       <p style = "color: green" id = "patientCount">0 Patient Addresses</p>
       <p style = "color: blue" id = "volunteerCount">0 Volunteer Addresses</p>
     </div>
+    <div id = "mapView" class = "map"></div>
   </div>
   <div class = "centered">
-    <div id = "addPatientDiv" class = "popup" style = " background-color: rgb(240, 239, 239);">
+    <div id = "addPatientDiv" class = "popup">
       <div class = "center-outside">
         <div class = "center-div">
           <form>
@@ -91,7 +91,7 @@ h1 {letter-spacing: 6px}
     </div>
   </div>
   <div class = "centered">
-    <div id = "addVolunteerAddressDiv" class = "popup" style = " background-color: rgb(240, 239, 239);">
+    <div id = "addVolunteerAddressDiv" class = "popup">
       <div class = "center-outside">
         <div class = "center-div">
           <form>
@@ -111,7 +111,7 @@ h1 {letter-spacing: 6px}
     </div>
   </div>
   <div class = "centered">
-    <div id = "calculatePopup" class = "popup overflowpopup" style = "display: none; background-color: rgb(240, 239, 239);">
+    <div id = "calculatePopup" class = "popup overflowpopup" style = "display: none;">
       <div class = "center-outside">
         <div class = "center-div">
           <form>
@@ -141,7 +141,7 @@ h1 {letter-spacing: 6px}
     </div>
   </div>
   <div class = "centered">
-    <div id = "columnPopup" class = "popup" style = "display: none; background-color: rgb(240, 239, 239);">
+    <div id = "columnPopup" class = "popup" style = "display: none;">
       <div class = "center-outside">
         <div class = "center-div">
           <table class = "columnPopupTable">

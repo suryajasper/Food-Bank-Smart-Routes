@@ -1,10 +1,25 @@
 :root {
   --buttonSelectActiveBorderColor: rgb(70, 89, 255);
+  --background-color-light: white;
+  --background-color-dark: #0f0f0f;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-weight: 500;
+  background-color: var(--background-color-light);
+}
+
+body.darkTheme {
+  background-color: var(--background-color-dark);
+}
+
+body.darkTheme {
+  color: white;
+}
+
+body.darkTheme button {
+  color: white;
 }
 
 body * {
@@ -46,7 +61,14 @@ body h3 {
   border-radius: 4px;
   z-index: 1000;
   margin-top: 100px;
+  background-color: rgb(240, 239, 239);
 }
+
+body.darkTheme .popup {
+  background-color: rgb(36, 36, 36);
+  border: 3px solid rgb(146, 144, 144);
+}
+
 .overflowpopup {
   overflow-y: scroll;
   height: 70vh;
@@ -198,7 +220,6 @@ input[type="number"][disabled]:hover {
 
 
 button:not(.nobuttoncss), input[type=submit] {
-
   margin: 5px;
   padding: 5px;
   border: none;
@@ -206,7 +227,15 @@ button:not(.nobuttoncss), input[type=submit] {
   border-radius: 3px;
   font-size: 15px;
   background-color: rgb(168, 168, 168);
-} /*
+} 
+
+body.darkTheme button:not(.nobuttoncss), input[type=submit] {
+  background-color: rgb(65, 65, 65);
+  font-size: 1.1em;
+} 
+
+
+/*
 button.nobuttoncss {
   border: none;
   border-radius: 0px;
@@ -316,6 +345,16 @@ button.switchActive {
   color: var(--buttonSelectActiveBorderColor);
 }
 
+body.darkTheme button.switchActive {
+  border-bottom: 2px solid rgb(43, 43, 43);
+  background-color: rgb(20, 20, 20);
+}
+body.darkTheme button.switchNotActive {
+  border: 2px solid rgb(43, 43, 43);
+  background-color: rgb(28, 28, 28);
+  color: rgb(66, 66, 66);
+}
+
 table.columnPopupTable {
   width: 100%;
   overflow-y: scroll;
@@ -333,6 +372,11 @@ table.columnPopupTable td {
   cursor: pointer;
   -webkit-transition: 0.5s;
   transition: 0.5s;
+}
+
+body.darkTheme table.columnPopupTable td {
+  border: 1px solid #ffffff;
+  background-color: #262626;
 }
 
 table.columnPopupTable td:hover {
@@ -437,3 +481,8 @@ table.columnPopupTable td:hover {
   right: 25px;
 }
 
+.map {
+  display: none;
+  width: 100vw;
+  height: 70%;
+}
