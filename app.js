@@ -50,7 +50,7 @@ function replaceAll(orig, toReplace, replaceWith) {
 
 function getCoordinates(address) {
   address = replaceAll(address, ' ', '+');
-  var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
+  var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyA1cFEJ566k4p_pWofCN7qv3MZF59Rcji4';
   var unirest = require("unirest");
   var req = unirest("GET", url);
   return req;
