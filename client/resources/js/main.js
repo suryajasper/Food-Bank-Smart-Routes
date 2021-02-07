@@ -106,33 +106,7 @@ function createMarker(m) {
     m.iw.setContent(m.info);
     m.iw.open(m.map, marker);
   });
-  if (m.doubleclick) {
-    google.maps.event.addListener(marker, 'dblclick', m.doubleclick);
-  }
   return marker;
-}
-
-function initMapWithInfos(locs, mapname, infos, dblclickcallback) {
-  document.getElementById(mapname).style.display = 'block';
-  map = new google.maps.Map(
-      document.getElementById(mapname), {zoom: 4, center: locs[0]});
-  var iw = new google.maps.InfoWindow();
-  for (var i = 0; i < locs.length; i++) (function(i) {
-    var marker = new google.maps.Marker({position: locs[i], map: map});
-    google.maps.event.addListener(marker, 'click', (function(marker, i) {
-      return function() {
-        iw.setContent(infos[i]);
-        iw.open(map, marker);
-      }
-    })(marker, i));
-    if (dblclickcallback) {
-      google.maps.event.addListener(marker, 'rightclick', (function(marker, address) {
-        return function() {
-          dblclickcallback(marker, address);
-        }
-      })(marker, infos[i]))
-    }
-  })(i);
 }
 
 function randInt(min, max) {
@@ -142,7 +116,8 @@ function randInt(min, max) {
 }
 
 
-function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, onclick, ondoubleclick) {
+function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, callbacks) {
+  document.getElementById(mapname).style.display = 'block';
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locMat[0][0].coord});
   var iw = new google.maps.InfoWindow();
@@ -164,12 +139,23 @@ function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, oncl
         if (prefaceLabels) {
           markObj.info = prefaceLabels[j] + markObj.info;
         }
-        if (ondoubleclick) {
-          markObj.doubleclick = function() {
-            ondoubleclick(j);
-          };
+        var marker = createMarker(markObj);
+        if (callbacks) {
+          if (callbacks.dblclick) {
+            google.maps.event.addListener(marker, 'dblclick', (function(marker, i, j) {
+              return function() {
+                callbacks.dblclick(marker, i, j);
+              }
+            })(marker, i, j))
+          }
+          if (callbacks.rightclick) {
+            google.maps.event.addListener(marker, 'rightclick', (function(marker, ind, j) {
+              return function() {
+                callbacks.rightclick(marker, ind, j);
+              }
+            })(marker, i, j))
+          }
         }
-        createMarker(markObj);
         bounds.extend(locs[i].coord);
       }
     })(j)
@@ -395,10 +381,10 @@ function deliveryRoutes() {
             };
           }
         }
-        initMapWithColorsNoOverlap('lastMapRoutes', solClone, null, null, null, function(index) {
-          document.getElementById('lastSelect').value = (index+1).toString();
+        initMapWithColorsNoOverlap('lastMapRoutes', solClone, null, null, {dblclick: function(marker, index, j) {
+          document.getElementById('lastSelect').value = (j+1).toString();
           refreshSelect();
-        });
+        }});
       }
     }
     document.getElementById('lastSelect').value = '1';
@@ -509,18 +495,41 @@ function viewAddresses() {
     socket.emit('getVolunteers', userID);
     socket.once('volunteerRes', function(volunteers) {
       document.getElementById('mapView').style.display = 'block';
+      var rightClickCorrect = function(marker, ind, type) {
+        socket.off('coordinatesRes');
+        var locs = (type == 'patients') ? patients : volunteers;
+        socket.emit('getCoordinates', locs[ind].address);
+        socket.on('coordinatesRes', function(res) {
+          marker.setPosition(res);
+          locs[ind].coord = res;
+          socket.emit('updateAddress', userID, type, locs[ind].address, {coord: res});
+        })
+      };
       if (patients && volunteers) {
+        var types = ['patients', 'volunteers'];
         document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
         document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
-        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '] );
+        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '], {
+          rightclick: function(marker, ind, type) {
+            rightClickCorrect(marker, ind, types[type]);
+          }
+        } );
       } else if (patients) {
         document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
         document.getElementById('volunteerCount').innerHTML = '0 Volunteer Addresses';
-        initMapWithColorsNoOverlap('mapView', [patients], ['green'], ['<b><span style = "color: green">Patient:</span></b> '] );
+        initMapWithColorsNoOverlap('mapView', [patients], ['green'], ['<b><span style = "color: green">Patient:</span></b> '], {
+          rightclick: function(marker, ind, type) {
+            rightClickCorrect(marker, ind, 'patients');
+          }
+        } );
       } else if (volunteers) {
         document.getElementById('patientCount').innerHTML = '0 Patient Addresses';
         document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
-        initMapWithColorsNoOverlap('mapView', [volunteers], ['blue'], ['<b><span style = "color: blue">Driver:</span></b> '] );
+        initMapWithColorsNoOverlap('mapView', [volunteers], ['blue'], ['<b><span style = "color: blue">Driver:</span></b> '], {
+          rightclick: function(marker, ind, type) {
+            rightClickCorrect(marker, ind, 'volunteers');
+          }
+        } );
       }
     })
   })
@@ -560,12 +569,14 @@ function handleAdmin() {
               for (var i = 0; i < locs.length; i++) {
                 locations.push({coord: locs[i], address: cooked[i]});
               }
-              initMapWithInfos(locs, seq.map, cooked, function(marker, address) {
-                socket.emit('getCoordinates', address);
+              initMapWithColorsNoOverlap(seq.map, [locations], ['yellow'], null, {rightclick: function(marker, ind, j) {
+                socket.off('coordinatesRes');
+                socket.emit('getCoordinates', cooked[ind]);
                 socket.on('coordinatesRes', function(res) {
                   marker.setPosition(res);
+                  locations[ind].coord = res;
                 })
-              });
+              }});
               seq.addAddressesButton.disabled = false;
             });
             socket.emit('getCoordinatesMult', addressesRaw);
@@ -585,14 +596,14 @@ function handleAdmin() {
                 for (var i = 0; i < locs.length; i++) {
                   locations.push({coord: locs[i], address: cooked[i]});
                 }
-                initMapWithInfos(locs, seq.map, cooked, function(marker, address) {
+                initMapWithColorsNoOverlap(seq.map, [locations], ['yellow'], null, {rightclick: function(marker, ind, j) {
                   socket.off('coordinatesRes');
-                  socket.emit('getCoordinates', address);
+                  socket.emit('getCoordinates', cooked[ind]);
                   socket.on('coordinatesRes', function(res) {
                     marker.setPosition(res);
-                    console.log(`changed position of ${address} to`, res);
+                    locations[ind].coord = res;
                   })
-                });
+                }});
                 document.getElementById(seq.previewButton).disabled = true;
                 seq.addAddressesButton.disabled = false;
                 seq.addAddressesButton.onclick = function(e) {

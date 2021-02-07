@@ -344,6 +344,33 @@ io.on('connection', function(socket){
 			});
     })
   });
+
+  socket.on('updateAddress', function(userID, type, addressOld, update) {
+    var typeRef = adminInfo.child(userID).child(type);
+    typeRef.once('value', function(snapshot) {
+      var objs = snapshot.val();
+      for (var key of Object.keys(objs)) {
+        if (objs[key].address == addressOld) {
+          typeRef.child(key).update(update);
+          break;
+        }
+      }
+    })
+  });
+
+  socket.on('deleteAddress', function(userID, type, addressOld) {
+    var typeRef = adminInfo.child(userID).child(type);
+    typeRef.once('value', function(snapshot) {
+      var objs = snapshot.val();
+      for (var key of Object.keys(objs)) {
+        if (objs[key].address == addressOld) {
+          typeRef.child(key).remove();
+          break;
+        }
+      }
+    })
+  });
+
   socket.on('removeAllAddresses', function(userID, type) {
 	  if (!type) type = 'patients';
     adminInfo.child(userID).child(type).remove();
