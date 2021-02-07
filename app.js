@@ -246,10 +246,7 @@ io.on('connection', function(socket){
   socket.on('getCoordinatesMult', function(addresses) {
 		var unirest = require("unirest");
 		console.log('--RECEIVED coordinates mult: ' + addresses.length.toString() + ' addresses');
-    /*var req = getCoordinates(addresses[0]);
-    req.then(res => {
-      socket.emit('print', res.body);
-    })*/
+
     var results = addresses.map(function(address) {
       return new Promise(function(resolve, reject) {
         var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
@@ -257,13 +254,14 @@ io.on('connection', function(socket){
         return req;
       });
 		});
+    
     Promise.all(results).then(function(result) {
       var locations = [];
 			var _addresses = [];
       var failedAddresses = [];
 			var s = null;
 			var ind = -1;
-      var content = result.map(function(loc) {
+      result.map(function(loc) {
 				ind++;
 				if (loc.error || loc.body.resourceSets[0].estimatedTotal === 0) {
 					/*if (loc.error)
@@ -285,18 +283,42 @@ io.on('connection', function(socket){
 	        return loc.body;
 				}
 			});
-			/*var good = true;
-			for (var i = 0; i < _addresses.length; i++) {
-				if (addresses[i] != _addresses[i]) {
-					good = false;
-					break;
-				}
-			}
-			if (good) {
-				console.log(TerminalColors.GREEN, '--API coordinates mult Success');
-			} else {
-				console.log(TerminalColors.RED, `--API coordinates mult Failed ${_addresses.length}/${addresses.length} returned`);
-			}
+      if (failedAddresses.length == 0) {
+        console.log(TerminalColors.GREEN, '--API coordinates mult Success');
+        socket.emit('coordinatesMultRes', locations, _addresses);
+        console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
+      } else {
+        console.log(TerminalColors.YELLOW, `--API coordinates mult Bing API Failed ${_addresses.length}/${addresses.length} returned. Trying Google API`);
+        var googleResults = failedAddresses.map(function(address) {
+          return new Promise(function(resolve, reject) {
+            var req = getCoordinatesGoogle(replaceAll(replaceAll(address, '#', ''), '/', ''));
+            req.end(function(res) {resolve(res); });
+            return req;
+          });
+        });
+        Promise.all(googleResults).then(function(gresult) {
+          failedAddresses = [];
+          ind = -1;
+          gresult.map(function(loc) {
+            ind++;
+            if (loc.error || loc.body.status === 'ZERO_RESULTS') {
+              failedAddresses.push(addresses[ind]);
+              return null;
+            } else {
+              locations.push(loc.body.results[0].geometry.location);
+              _addresses.push(addresses[ind]);
+              return loc.body;
+            }
+          });
+          if (failedAddresses.length == 0) {
+            console.log(TerminalColors.GREEN, '--API coordinates mult Success Google API');
+            console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
+          } else {
+            console.log(TerminalColors.RED, `--API coordinates mult Failed Google API ${_addresses.length}/${addresses.length} returned`);
+          }
+          socket.emit('coordinatesMultRes', locations, _addresses);
+        });
+      }
     });
   });
   socket.on('addAddresses', function(userID, locs, type) {
