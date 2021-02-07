@@ -51,6 +51,10 @@ function getDatabase(path, callback) {
   });
 }
 
+socket.on('print', function(stuff) {
+  console.log(stuff);
+})
+
 /*------------------------------------------------------------------------------*/
 
 var hidePopups = function() {

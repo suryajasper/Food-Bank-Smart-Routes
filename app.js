@@ -49,8 +49,18 @@ function replaceAll(orig, toReplace, replaceWith) {
 }
 
 function getCoordinates(address) {
+  address = replaceAll(address, ' ', '%20');
+  // var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
+  var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AlAZE9FEAcWr3KEvVmUQOgkd_W5OteguhMDuq2mKbrkni9WHwvnGVks1EPzy68sw&maxResults=1`;
+  var unirest = require("unirest");
+  var req = unirest("GET", url);
+  return req;
+}
+
+function getCoordinatesGoogle(address) {
   address = replaceAll(address, ' ', '+');
   var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
+  // var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AlAZE9FEAcWr3KEvVmUQOgkd_W5OteguhMDuq2mKbrkni9WHwvnGVks1EPzy68sw`;
   var unirest = require("unirest");
   var req = unirest("GET", url);
   return req;
@@ -226,16 +236,20 @@ io.on('connection', function(socket){
     req.end(function(res) {
       if (res.error) {console.log(res.error);}
       else {
-        socket.emit('coordinatesRes', res.body.results[0].geometry.location);
+        // socket.emit('coordinatesRes', res.body.results[0].geometry.location);
       }
     });
   });
-	var reportError = function(msg) {
+  var reportError = function(msg) {
 		socket.emit('reporterror', msg);
 	}
   socket.on('getCoordinatesMult', function(addresses) {
 		var unirest = require("unirest");
 		console.log('--RECEIVED coordinates mult: ' + addresses.length.toString() + ' addresses');
+    /*var req = getCoordinates(addresses[0]);
+    req.then(res => {
+      socket.emit('print', res.body);
+    })*/
     var results = addresses.map(function(address) {
       return new Promise(function(resolve, reject) {
         var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
@@ -246,29 +260,32 @@ io.on('connection', function(socket){
     Promise.all(results).then(function(result) {
       var locations = [];
 			var _addresses = [];
+      var failedAddresses = [];
 			var s = null;
 			var ind = -1;
       var content = result.map(function(loc) {
 				ind++;
-				if (loc.error || loc.body.status === 'ZERO_RESULTS') {
-					if (loc.error)
+				if (loc.error || loc.body.resourceSets[0].estimatedTotal === 0) {
+					/*if (loc.error)
 						reportError('"' + addresses[ind] + '" is badly formatted and was not added. Please try again.');
 					else
-						reportError('"' + addresses[ind] + '" returned no results"');
+						reportError('"' + addresses[ind] + '" returned no results');*/
+          failedAddresses.push(addresses[ind]);
 					return null;
 				} else {
+          var geocodeRes = loc.body.resourceSets[0].resources[0];
 					if (s === null) {
-						s = loc.body.results[0];
+						s = geocodeRes;
 					}
-					if (loc.body.results[0] === undefined) {
-						console.log(loc.body);
-					}
-					locations.push(loc.body.results[0].geometry.location);
+					locations.push({
+            lat: geocodeRes.point.coordinates[0],
+            lng: geocodeRes.point.coordinates[1]
+          });
 					_addresses.push(addresses[ind]);
 	        return loc.body;
 				}
 			});
-			var good = true;
+			/*var good = true;
 			for (var i = 0; i < _addresses.length; i++) {
 				if (addresses[i] != _addresses[i]) {
 					good = false;
@@ -278,10 +295,8 @@ io.on('connection', function(socket){
 			if (good) {
 				console.log(TerminalColors.GREEN, '--API coordinates mult Success');
 			} else {
-				console.log(TerminalColors.RED, '--API coordinates mult Failed');
+				console.log(TerminalColors.RED, `--API coordinates mult Failed ${_addresses.length}/${addresses.length} returned`);
 			}
-      socket.emit('coordinatesMultRes', locations, _addresses);
-			console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
     });
   });
   socket.on('addAddresses', function(userID, locs, type) {
