@@ -112,12 +112,12 @@ function createMarker(m) {
   return marker;
 }
 
-function initMapWithInfos(locs, mapname, infos) {
+function initMapWithInfos(locs, mapname, infos, dblclickcallback) {
   document.getElementById(mapname).style.display = 'block';
   map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
   var iw = new google.maps.InfoWindow();
-  for (var i = 0; i < locs.length; i++) {
+  for (var i = 0; i < locs.length; i++) (function(i) {
     var marker = new google.maps.Marker({position: locs[i], map: map});
     google.maps.event.addListener(marker, 'click', (function(marker, i) {
       return function() {
@@ -125,7 +125,14 @@ function initMapWithInfos(locs, mapname, infos) {
         iw.open(map, marker);
       }
     })(marker, i));
-  }
+    if (dblclickcallback) {
+      google.maps.event.addListener(marker, 'rightclick', (function(marker, address) {
+        return function() {
+          dblclickcallback(marker, address);
+        }
+      })(marker, infos[i]))
+    }
+  })(i);
 }
 
 function randInt(min, max) {
@@ -526,6 +533,7 @@ function handleAdmin() {
   var addListeners = function(arr) {
     for (var seq of arr) (function(seq) {
       if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
+        socket.off('displayMessageInPopup');
         seq.addAddressesButton.onclick = function(e) {
           e.preventDefault();
           var addressesRaw = document.getElementById(seq.addressIn).value.split('\n');
@@ -539,6 +547,9 @@ function handleAdmin() {
             locations = [];
             hidePopups();
           });
+          socket.on('displayMessageInPopup', function(message) {
+            seq.addressIn.value = message;
+          });
         };
         document.getElementById(seq.previewButton).onclick = function(e) {
           e.preventDefault();
@@ -549,7 +560,12 @@ function handleAdmin() {
               for (var i = 0; i < locs.length; i++) {
                 locations.push({coord: locs[i], address: cooked[i]});
               }
-              initMapWithInfos(locs, seq.map, cooked);
+              initMapWithInfos(locs, seq.map, cooked, function(marker, address) {
+                socket.emit('getCoordinates', address);
+                socket.on('coordinatesRes', function(res) {
+                  marker.setPosition(res);
+                })
+              });
               seq.addAddressesButton.disabled = false;
             });
             socket.emit('getCoordinatesMult', addressesRaw);
@@ -569,7 +585,14 @@ function handleAdmin() {
                 for (var i = 0; i < locs.length; i++) {
                   locations.push({coord: locs[i], address: cooked[i]});
                 }
-                initMapWithInfos(locs, seq.map, cooked);
+                initMapWithInfos(locs, seq.map, cooked, function(marker, address) {
+                  socket.off('coordinatesRes');
+                  socket.emit('getCoordinates', address);
+                  socket.on('coordinatesRes', function(res) {
+                    marker.setPosition(res);
+                    console.log(`changed position of ${address} to`, res);
+                  })
+                });
                 document.getElementById(seq.previewButton).disabled = true;
                 seq.addAddressesButton.disabled = false;
                 seq.addAddressesButton.onclick = function(e) {

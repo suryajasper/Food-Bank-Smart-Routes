@@ -232,11 +232,11 @@ io.on('connection', function(socket){
     })
   });
   socket.on('getCoordinates', function(address) {
-    var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
+    var req = getCoordinatesGoogle(replaceAll(replaceAll(address, '#', ''), '/', ''));
     req.end(function(res) {
       if (res.error) {console.log(res.error);}
       else {
-        // socket.emit('coordinatesRes', res.body.results[0].geometry.location);
+        socket.emit('coordinatesRes', res.body.results[0].geometry.location);
       }
     });
   });
@@ -259,19 +259,19 @@ io.on('connection', function(socket){
       var locations = [];
 			var _addresses = [];
       var failedAddresses = [];
+      var confidences = {};
 			var s = null;
 			var ind = -1;
       result.map(function(loc) {
 				ind++;
 				if (loc.error || loc.body.resourceSets[0].estimatedTotal === 0) {
-					/*if (loc.error)
-						reportError('"' + addresses[ind] + '" is badly formatted and was not added. Please try again.');
-					else
-						reportError('"' + addresses[ind] + '" returned no results');*/
           failedAddresses.push(addresses[ind]);
 					return null;
 				} else {
           var geocodeRes = loc.body.resourceSets[0].resources[0];
+          if (!confidences[geocodeRes.confidence]) {
+            confidences[geocodeRes.confidence] = 0;
+          } confidences[geocodeRes.confidence]++;
 					if (s === null) {
 						s = geocodeRes;
 					}
@@ -283,6 +283,7 @@ io.on('connection', function(socket){
 	        return loc.body;
 				}
 			});
+      console.log('confidence', confidences);
       if (failedAddresses.length == 0) {
         console.log(TerminalColors.GREEN, '--API coordinates mult Success');
         socket.emit('coordinatesMultRes', locations, _addresses);
@@ -315,6 +316,7 @@ io.on('connection', function(socket){
             console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
           } else {
             console.log(TerminalColors.RED, `--API coordinates mult Failed Google API ${_addresses.length}/${addresses.length} returned`);
+            socket.emit('displayMessageInPopup', `could not get the following addresses: ${failedAddresses.join('\n')}`);
           }
           socket.emit('coordinatesMultRes', locations, _addresses);
         });
