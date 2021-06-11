@@ -37,27 +37,34 @@ def format_solution(data, manager, routing, solution, addresses, matrix):
     time = []
     #count_dimension = routing.GetDimensionOrDie('count')
     print('started formatting')
+    output = ''
     for vehicle_id in range(data['num_vehicles']):
         #index_end = routing.End(vehicle_id)
         #count_dimension.SetCumulVarSoftLowerBound(index_end,2,100000)
         toAppend = []
         index = routing.Start(vehicle_id)
+        plan_output = 'Route for vehicle {}: '.format(vehicle_id)
         route_distance = 0
         while not routing.IsEnd(index):
+            plan_output += '{}|'.format(addresses[manager.IndexToNode(index)])
             toAppend.append(addresses[manager.IndexToNode(index)])
             previous_index = index
             index = solution.Value(routing.NextVar(index))
             route_distance += routing.GetArcCostForVehicle(
                 previous_index, index, vehicle_id)
+        plan_output += '\n'
+        output += plan_output
         time.append(route_distance)
         toReturn.append(toAppend)
+    with open('vrplogaddresses.out', 'w') as cout:
+        cout.write(output)
     toReturnFin = {}
     toReturnFin['routes'] = toReturn
     toReturnFin['times'] = time
-    toReturnFin['matrix'] = matrix
     toReturnFin['dropped'] = dropped_nodes
     toReturnFin['addresses'] = addresses
-    print('done formatting')
+    toReturnFin['matrix'] = matrix
+    print('done formatting', toReturnFin['dropped'])
     return toReturnFin
 
 def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
@@ -132,7 +139,6 @@ def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
 def vrp():
 	if request.method == 'POST':
 		json = request.get_json(force=True)
-		print(json['options'])
 		response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'], json['options']['maxTime'], json['options']['maxDest'])
 		return response
 

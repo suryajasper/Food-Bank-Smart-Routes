@@ -1,7 +1,8 @@
 initializeFirebase();
+var userID;
+
 var socket = io();
 
-var userID;
 firebase.auth().onAuthStateChanged(function(user) {
   userID = user.uid;
   socket.emit('bruhAmIAdminOrNot', userID);
@@ -20,6 +21,23 @@ String.prototype.replaceAll = function(toReplace, replaceWith) {
   }
   return replaced;
 }
+
+function refreshTheme() {
+  var theme = Cookies.get('theme');
+  if (theme == 'dark') document.body.className = 'darkTheme';
+  else document.body.className = '';
+}
+
+Mousetrap.bind(['command+shift+d', 'ctrl+shift+d'], function(e) {
+  e.preventDefault();
+  if (Cookies.get('theme') == 'dark')
+    Cookies.set('theme', 'light');
+  else
+    Cookies.set('theme', 'dark');
+  refreshTheme();
+});
+
+refreshTheme();
 
 /*---------------For Debugging only (don't include in final version)------------*/
 
@@ -51,13 +69,13 @@ function getDatabase(path, callback) {
   });
 }
 
-socket.on('print', function(stuff) {
-  console.log(stuff);
-})
+socket.on('print', console.log);
+
+socket.on('reporterror', window.alert);
 
 /*------------------------------------------------------------------------------*/
 
-var hidePopups = function() {
+function hidePopups() {
   document.getElementById('addPatientDiv').style.display = 'none';
 
   document.getElementById('addVolunteerAddressDiv').style.display = 'none';
@@ -114,7 +132,6 @@ function randInt(min, max) {
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min;
 }
-
 
 function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, callbacks) {
   document.getElementById(mapname).style.display = 'block';
@@ -242,6 +259,7 @@ function initMapWithRoutes(_locs) {
     copyText.remove();
   }
 }
+
 function initMapWithMultipleRoutes(locsArr) {
   var directionsService = new google.maps.DirectionsService();
   var directionsRenderer = new google.maps.DirectionsRenderer();
@@ -282,7 +300,7 @@ function calculateAndDisplayRoute(directionsService, directionsRenderer, locs) {
   );
 }
 
-var initTheMap = function(locs, mapname) {
+function initTheMap(locs, mapname) {
   document.getElementById(mapname).style.display = 'block';
   var map = new google.maps.Map(
       document.getElementById(mapname), {zoom: 4, center: locs[0]});
@@ -770,7 +788,3 @@ document.getElementById('routes').onclick = function(e) {
 }
 
 hidePopups();
-
-socket.on('reporterror', function(msg) {
-  window.alert(msg);
-})

@@ -229,11 +229,10 @@ button:not(.nobuttoncss), input[type=submit] {
   background-color: rgb(168, 168, 168);
 } 
 
-body.darkTheme button:not(.nobuttoncss), input[type=submit] {
+body.darkTheme button:not(.nobuttoncss), body.darkTheme input[type=submit] {
   background-color: rgb(65, 65, 65);
   font-size: 1.1em;
 } 
-
 
 /*
 button.nobuttoncss {
@@ -320,6 +319,9 @@ tr:nth-child(even) {
 }
 .groupinputs {
   background-color: rgb(214, 214, 214);
+}
+body.darkTheme .groupinputs {
+  background-color: rgb(63, 63, 63);
 }
 .groupinputs input,
 h4 {

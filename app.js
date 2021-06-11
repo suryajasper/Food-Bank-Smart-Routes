@@ -77,7 +77,7 @@ admin.initializeApp({
 
 function maxLength(arr) {
   var max = 0;
-    for (var subarr of arr) {
+	for (var subarr of arr) {
     if (subarr.length > max) {
       max = subarr.length;
     }
@@ -123,23 +123,21 @@ function distanceMatrix(locations1, locations2) {
 	});
 
 	return req;
-	/*req.end(function(res) {
-		res.body.formattedAddresses = formattedAddresses;
-		socket.emit('distanceMatrixRes', res.body);
-	});*/
 }
 
 async function writeToSheet(id, sol, shouldGenerateTravelTimes) {
 	var doc = new GoogleSpreadsheet(id);
 	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
 	var _headers = ['Time'];
-	for (var i = 0; i < maxLength(sol.routes); i++) {
-        _headers.push('Destination ' + (i+1).toString());
-        if (shouldGenerateTravelTimes) {
-            _headers.push('Travel Time ' + (i+1).toString() + '-' + (i+2).toString());
-        }
+
+	let maxDest = maxLength(sol.routes);
+
+	for (var i = 0; i < maxDest; i++) {
+		_headers.push(`Destination ${i+1}`);
+		if (shouldGenerateTravelTimes) {
+			_headers.push(`Travel Time ${i+1}-${i+2}`);
+		}
 	}
-	_headers.pop();
 	_headers.push('Dropped');
 
 	var droppedTracker = 0;
@@ -150,17 +148,17 @@ async function writeToSheet(id, sol, shouldGenerateTravelTimes) {
 	  else {
 			for (var i = 0; i < sol.routes.length; i++) {
 				var row = {Time: sol.times[i].toString()};
-				for (var j = 0; j < sol.routes[i].length; j++) {
-					row['Destination ' + (j+1).toString()] = sol.routes[i][j].trim();
-                }
-                if (shouldGenerateTravelTimes) {
-                    for (var j = 0; j < indTimes[i].length; j++) {
-                        row['Travel Time ' + (j+1).toString() + '-' + (j+2).toString()] = indTimes[i][j];
-                    }
-                }
-				if (droppedTracker < sol.dropped.length) {
+
+				for (var j = 0; j < sol.routes[i].length; j++)
+					row[`Destination ${j+1}`] = sol.routes[i][j].trim();
+				
+				if (shouldGenerateTravelTimes)
+					for (var j = 0; j < indTimes[i].length; j++)
+						row[`Travel Time ${j+1}-${j+2}`] = indTimes[i][j];
+				
+				if (droppedTracker < sol.dropped.length)
 					row['Dropped'] = sol.dropped[droppedTracker];
-				}
+				
 				droppedTracker++;
 				await promisify(newSheet.addRow)(row);
 			}
@@ -244,7 +242,6 @@ io.on('connection', function(socket){
 		socket.emit('reporterror', msg);
 	}
   socket.on('getCoordinatesMult', function(addresses) {
-		var unirest = require("unirest");
 		console.log('--RECEIVED coordinates mult: ' + addresses.length.toString() + ' addresses');
 
     var results = addresses.map(function(address) {
@@ -298,25 +295,25 @@ io.on('connection', function(socket){
           });
         });
         Promise.all(googleResults).then(function(gresult) {
-          failedAddresses = [];
-          ind = -1;
+					ind = -1;
+          let failedAddressesGoogle = [];
           gresult.map(function(loc) {
             ind++;
             if (loc.error || loc.body.status === 'ZERO_RESULTS') {
-              failedAddresses.push(addresses[ind]);
+              failedAddressesGoogle.push(failedAddresses[ind]);
               return null;
             } else {
               locations.push(loc.body.results[0].geometry.location);
-              _addresses.push(addresses[ind]);
+              _addresses.push(failedAddresses[ind]);
               return loc.body;
             }
           });
-          if (failedAddresses.length == 0) {
+          if (failedAddressesGoogle.length == 0) {
             console.log(TerminalColors.GREEN, '--API coordinates mult Success Google API');
             console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
           } else {
             console.log(TerminalColors.RED, `--API coordinates mult Failed Google API ${_addresses.length}/${addresses.length} returned`);
-            socket.emit('displayMessageInPopup', `could not get the following addresses: ${failedAddresses.join('\n')}`);
+            socket.emit('displayMessageInPopup', `could not get the following addresses: ${failedAddressesGoogle.join('\n')}`);
           }
           socket.emit('coordinatesMultRes', locations, _addresses);
         });
@@ -420,14 +417,11 @@ io.on('connection', function(socket){
 				console.log('--SEND previous distance matrix');
 			} else {
 				adminInfo.child(userID).child('patients').once('value', function(snapshot) {
-					var locations = Object.values(snapshot.val());
-					var formattedAddresses = [];
-					for (var loc of locations) {
-						formattedAddresses.push(loc.address);
-					}
-					for (var i = 0; i < locations.length; i++) {
-						locations[i] = locations[i].coord;
-					}
+					let raw_locs = snapshot.val();
+
+					let formattedAddresses = raw_locs.map(loc => loc.address);
+
+					let locations = raw_locs.map(loc => loc.coord);
 					locations.unshift(start);
 
 					if (locations.length > 25) {
@@ -456,7 +450,7 @@ io.on('connection', function(socket){
 							}
 							var curr = 0;
 							var howMany = 0;
-							var content = result.map(function(submatrix) {
+							result.map(submatrix => {
 								var infos = submatrix.body.resourceSets[0].resources[0].results;
 								for (var destination of infos) {
 			            times[destination.originIndex+curr].push(parseFloat(destination.travelDuration));
@@ -546,7 +540,7 @@ io.on('connection', function(socket){
 		if (_options.delivererCount < 0) {
 			adminInfo.child(userID).child('volunteers').once('value', function(snap) {
 				if (snap.val() !== null) {
-					_options.delivererCount = Object.values(snap.val()).length;
+					_options.delivererCount = snap.val().length;
 					afterAutoFill(_options);
 				}
 			})
