@@ -515,7 +515,7 @@ io.on('connection', function(socket){
 	})
 	
 	socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
-		var req = require('unirest')("POST", 'http://localhost:4003/vrp');
+		var req = require('unirest')("POST", 'http://104.198.222.54:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
 		
 		console.log('--GET VRP request');
