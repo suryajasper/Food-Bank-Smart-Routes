@@ -1,6 +1,6 @@
-const gei = str => document.getElementById(str);
+const gei = id => document.getElementById(id);
 
-var dom = {
+const dom = {
   tools: {
     addPatients: gei('addPatient'),
     addVolunteers: gei('addVolunteer'),
@@ -91,3 +91,5 @@ var dom = {
     routeLinkCopy: gei('copyMapUrl')
   }
 }
+
+Object.freeze(dom);

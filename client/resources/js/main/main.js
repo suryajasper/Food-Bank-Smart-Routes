@@ -1,143 +1,3 @@
-initializeFirebase();
-var userID;
-
-var socket = io();
-
-firebase.auth().onAuthStateChanged(function(user) {
-  userID = user.uid;
-  socket.emit('bruhAmIAdminOrNot', userID);
-  socket.on('youAreNotTheAdmin', function(isAdmin) {
-    if (isAdmin) {
-      document.getElementById('showIfAdmin').style.display = 'block';
-      handleAdmin();
-    }
-  })
-})
-
-String.prototype.replaceAll = function(toReplace, replaceWith) {
-  var replaced = this.replace(toReplace, replaceWith);
-  while (replaced.includes(toReplace)) {
-    replaced = replaced.replace(toReplace, replaceWith);
-  }
-  return replaced;
-}
-
-function refreshTheme() {
-  var theme = Cookies.get('theme');
-  if (theme == 'dark') document.body.className = 'darkTheme';
-  else document.body.className = '';
-}
-
-Mousetrap.bind(['command+shift+d', 'ctrl+shift+d'], function(e) {
-  e.preventDefault();
-  if (Cookies.get('theme') == 'dark')
-    Cookies.set('theme', 'light');
-  else
-    Cookies.set('theme', 'dark');
-  refreshTheme();
-});
-
-refreshTheme();
-
-/*---------------For Debugging only (don't include in final version)------------*/
-
-function updateDatabase(path, data) {
-  if (typeof(path) == 'string') {
-    path = path.split('/');
-  }
-  socket.emit('updateDatabase', path, data);
-}
-
-function setDatabase(path, data) {
-  if (typeof(path) == 'string') {
-    path = path.split('/');
-  }
-  socket.emit('setDatabase', path, data);
-}
-
-function getDatabase(path, callback) {
-  if (typeof(path) == 'string') {
-    path = path.split('/');
-  }
-  socket.off('getDatabaseSuccess');
-  socket.emit('getDatabase', path);
-  socket.on('getDatabaseSuccess', function(res) {
-    if (callback)
-      callback(res);
-    else
-      console.log(res);
-  });
-}
-
-socket.on('print', console.log);
-
-socket.on('reporterror', window.alert);
-
-/*------------------------------------------------------------------------------*/
-
-function hidePopups() {
-  dom.popups.patients.div.style.display = 'none';
-  dom.popups.volunteers.div.style.display = 'none';
-  dom.popups.calc.div.style.display = 'none';
-  dom.popups.csv.div.style.display = 'none';
-
-  dom.popups.patients.fileInLabel.innerHTML = 'import a .csv file';
-  dom.popups.volunteers.fileInLabel.innerHTML = 'import a .csv file';
-
-  dom.popups.patients.map.style.display = 'none';
-  dom.popups.volunteers.map.style.display = 'none';
-
-  dom.popups.patients.confirm.disabled = false;
-  dom.popups.volunteers.confirm.disabled = false;
-}
-
-function randInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-
-function convertToSheetId(link) {
-  var startDelimiter = 'spreadsheets/d/';
-  return link.substring(link.indexOf(startDelimiter)+startDelimiter.length).split('/')[0];
-}
-
-function createRow(arr) {
-  var tr = document.createElement('tr');
-
-  for (var el of arr) {
-    var td = document.createElement('td');
-    td.innerHTML = el;
-    tr.appendChild(td);
-  }
-
-  return tr;
-}
-
-function btr(bool) {
-  return bool ? 'yes': 'no';
-}
-
-function removeEmptyStrings(arr) {
-  var newArr = [];
-  for (var el of arr) {
-    if (el !== '') newArr.push(el);
-  } return newArr;
-}
-
-function fillSelect(name, length) {
-  $('#' + name).empty();
-  var soption = document.createElement('option');
-  soption.innerHTML = 'all';
-  soption.value = 'all';
-  document.getElementById(name).appendChild(soption);
-  for (var i = 1; i <= length; i++) {
-    var option = document.createElement('option');
-    option.innerHTML = i.toString();
-    option.value = i.toString();
-    document.getElementById(name).appendChild(option);
-  }
-}
 
 function droppedLocations() {
   dom.view.div.style.display = 'none';
@@ -222,35 +82,6 @@ function deliveryRoutes() {
     dom.lastCalc.routeSelect.oninput = refreshSelect;
     initMapWithRoutes(solution.routes[0]);
   })
-}
-
-function setSelected(ind) {
-  var div = dom.lastCalc.div;
-  var sow = 0;
-  for (var i = 0; i < div.children.length; i++) {
-    if (div.children[i].tagName === 'BUTTON') {
-      if (sow === ind) {
-        div.children[i].classList.remove('switchNotActive');
-        div.children[i].classList.add('switchActive');
-      } else {
-        div.children[i].classList.remove('switchActive');
-        div.children[i].classList.add('switchNotActive');
-      } sow++;
-    } else break;
-  }
-}
-
-function fillTable(tableId, data) {
-  var table = document.getElementById(tableId);
-  for (var row of data) {
-    var tr = document.createElement('tr');
-    for (var el of row) {
-      var td = document.createElement('td');
-      td.innerHTML = el;
-      tr.appendChild(td);
-    }
-    table.appendChild(tr);
-  }
 }
 
 function extractRange(data, callback) {
@@ -391,10 +222,10 @@ function viewAddresses() {
 }
 
 function handleAdmin() {
-  var locations = [];
-  var emails = [];
-
+  
   function addListeners(arr) {
+    var locations = [];
+    
     for (var seq of arr) (function(seq) {
       if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
         socket.off('displayMessageInPopup');
@@ -644,5 +475,3 @@ dom.tools.calcRoutes.onclick = function(e) {
     }
   }
 }
-
-hidePopups();
