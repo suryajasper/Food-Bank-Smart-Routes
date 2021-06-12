@@ -96,7 +96,7 @@ function initMapWithRoutes(_locs) {
   });
   let directionsService = new google.maps.DirectionsService();
   let directionsRenderer = new google.maps.DirectionsRenderer();
-  let map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
+  let map = new google.maps.Map(dom.lastCalc.routesMap, {
     zoom: 6
   });
   directionsRenderer.setMap(map);
@@ -114,8 +114,8 @@ function initMapWithRoutes(_locs) {
       url += '%7C' + locs[i];
     }
   };
-  document.getElementById('routeUrl').href = url;
-  document.getElementById('copyMapUrl').onclick = function() {
+  dom.lastCalc.routeLink.href = url;
+  dom.lastCalc.routeLinkCopy.onclick = function() {
     let copyText = document.createElement("input");
     document.body.appendChild(copyText);
     copyText.value = url;

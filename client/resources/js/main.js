@@ -76,237 +76,25 @@ socket.on('reporterror', window.alert);
 /*------------------------------------------------------------------------------*/
 
 function hidePopups() {
-  document.getElementById('addPatientDiv').style.display = 'none';
+  dom.popups.patients.div.style.display = 'none';
+  dom.popups.volunteers.div.style.display = 'none';
+  dom.popups.calc.div.style.display = 'none';
+  dom.popups.csv.div.style.display = 'none';
 
-  document.getElementById('addVolunteerAddressDiv').style.display = 'none';
+  dom.popups.patients.fileInLabel.innerHTML = 'import a .csv file';
+  dom.popups.volunteers.fileInLabel.innerHTML = 'import a .csv file';
 
-  document.getElementById('csvLabel').innerHTML = 'import a .csv file';
+  dom.popups.patients.map.style.display = 'none';
+  dom.popups.volunteers.map.style.display = 'none';
 
-  document.getElementById('map').style.display = 'none';
-
-  document.getElementById('calculatePopup').style.display = 'none';
-
-  document.getElementById('columnPopup').style.display = 'none';
-
-  document.getElementById('addBankButton').disabled = false;
-}
-
-function createMarkerImage(color) {
-  var pinColor = color;
-
-  // Pick your pin (hole or no hole)
-  var pinSVGHole = "M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z";
-  var pinSVGFilled = "M 12,2 C 8.1340068,2 5,5.1340068 5,9 c 0,5.25 7,13 7,13 0,0 7,-7.75 7,-13 0,-3.8659932 -3.134007,-7 -7,-7 z";
-
-  var markerImage = {  // https://developers.google.com/maps/documentation/javascript/reference/marker#MarkerLabel
-      path: pinSVGHole,
-      anchor: new google.maps.Point(12,17),
-      fillOpacity: 1,
-      fillColor: pinColor,
-      strokeWeight: 2,
-      strokeColor: "black",
-      scale: 2
-  };
-
-  return markerImage;
-}
-
-function createMarker(m) {
-  var mapInit = {
-    position: m.coord,
-    map: m.map
-  };
-  if ('icon' in m) {
-    mapInit.icon = m.icon;
-  }
-  var marker = new google.maps.Marker(mapInit);
-  google.maps.event.addListener(marker, 'click', function() {
-    m.iw.setContent(m.info);
-    m.iw.open(m.map, marker);
-  });
-  return marker;
+  dom.popups.patients.confirm.disabled = false;
+  dom.popups.volunteers.confirm.disabled = false;
 }
 
 function randInt(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min;
-}
-
-function initMapWithColorsNoOverlap(mapname, locMat, colors, prefaceLabels, callbacks) {
-  document.getElementById(mapname).style.display = 'block';
-  map = new google.maps.Map(
-      document.getElementById(mapname), {zoom: 4, center: locMat[0][0].coord});
-  var iw = new google.maps.InfoWindow();
-  var bounds = new google.maps.LatLngBounds();
-  socket.off('colorsRes');
-  function render(_colors) {
-    console.log(_colors, locMat)
-    for (var j = 0; j < locMat.length; j++) (function(j) {
-      var locs = locMat[j];
-      var color = _colors[j];
-      for (var i = 0; i < locs.length; i++) {
-        var markObj = {
-          map: map, 
-          iw: iw,
-          coord: locs[i].coord,
-          info: locs[i].address, 
-          icon: createMarkerImage(color)
-        };
-        if (prefaceLabels) {
-          markObj.info = prefaceLabels[j] + markObj.info;
-        }
-        var marker = createMarker(markObj);
-        if (callbacks) {
-          if (callbacks.dblclick) {
-            google.maps.event.addListener(marker, 'dblclick', (function(marker, i, j) {
-              return function() {
-                callbacks.dblclick(marker, i, j);
-              }
-            })(marker, i, j))
-          }
-          if (callbacks.rightclick) {
-            google.maps.event.addListener(marker, 'rightclick', (function(marker, ind, j) {
-              return function() {
-                callbacks.rightclick(marker, ind, j);
-              }
-            })(marker, i, j))
-          }
-        }
-        bounds.extend(locs[i].coord);
-      }
-    })(j)
-    map.fitBounds(bounds);
-  }
-  if (colors)
-    render(colors);
-  else {
-    socket.emit('getColors', locMat.length);
-    socket.on('colorsRes', render);
-  }
-}
-
-function initMapWithColors(locs, colors, mapname, dropped, start) {
-  map = new google.maps.Map(
-      document.getElementById(mapname), {zoom: 4, center: locs[0].coord});
-  var bounds = new google.maps.LatLngBounds();
-  if (start) {
-    var startmarker = new google.maps.Marker({
-      position: start,
-      icon: createMarkerImage(colors[2]),
-      map: map
-    });
-    bounds.extend(start);
-  }
-  var iw = new google.maps.InfoWindow();
-  for (var i = 0; i < locs.length; i++) {
-    if (dropped && dropped.includes(locs[i].address)) {
-      var marker = new google.maps.Marker({
-        position: locs[i].coord,
-        icon: createMarkerImage(colors[1]),
-        map: map
-      });
-    } else {
-      var marker = new google.maps.Marker({
-        position: locs[i].coord,
-        icon: createMarkerImage(colors[0]),
-        map: map
-      });
-      bounds.extend(locs[i].coord);
-    }
-    google.maps.event.addListener(marker, 'click', (function(marker, i) {
-      return function() {
-        iw.setContent(locs[i].address);
-        iw.open(map, marker);
-      }
-    })(marker, i));
-  }
-  map.fitBounds(bounds);
-}
-
-function initMapWithRoutes(_locs) {
-  var locs = _locs.map(function(arr) {
-    return arr.slice();
-  });
-  var directionsService = new google.maps.DirectionsService();
-  var directionsRenderer = new google.maps.DirectionsRenderer();
-  var map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
-    zoom: 6
-  });
-  directionsRenderer.setMap(map);
-  calculateAndDisplayRoute(directionsService, directionsRenderer, locs);
-  for (var i = 0; i < locs.length; i++) {
-    locs[i] = locs[i].replaceAll(' ', '+');
-  }
-  var url = 'https://www.google.com/maps/dir/?api=1&';
-  url += 'origin=' + locs[0] + '&';
-  url += 'destination=' + locs[locs.length-1]
-  if (locs.length > 2) {
-    url += '&travelmode=driving&waypoints=';
-    url += locs[1];
-    for (var i = 2; i < locs.length-1; i++) {
-      url += '%7C' + locs[i];
-    }
-  };
-  document.getElementById('routeUrl').href = url;
-  document.getElementById('copyMapUrl').onclick = function() {
-    var copyText = document.createElement("input");
-    document.body.appendChild(copyText);
-    copyText.value = url;
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-    copyText.remove();
-  }
-}
-
-function initMapWithMultipleRoutes(locsArr) {
-  var directionsService = new google.maps.DirectionsService();
-  var directionsRenderer = new google.maps.DirectionsRenderer();
-  var map = new google.maps.Map(document.getElementById('lastMapRoutes'), {
-    zoom: 6
-  });
-  directionsRenderer.setMap(map);
-  for (var locs of locsArr)
-    calculateAndDisplayRoute(directionsService, directionsRenderer, locs);
-}
-
-function calculateAndDisplayRoute(directionsService, directionsRenderer, locs) {
-  var start = locs[0];
-  var end = locs[locs.length-1];
-  var waypts = [];
-  for (var i = 1; i < locs.length-1; i++) {
-    waypts.push({
-      location: locs[i],
-      stopover: true
-    });
-  }
-
-  directionsService.route(
-    {
-      origin: start,
-      destination: end,
-      waypoints: waypts,
-      optimizeWaypoints: false,
-      travelMode: "DRIVING"
-    },
-    function(response, status) {
-      if (status === "OK") {
-        directionsRenderer.setDirections(response);
-      } else {
-        window.alert("Directions request failed due to " + status);
-      }
-    }
-  );
-}
-
-function initTheMap(locs, mapname) {
-  document.getElementById(mapname).style.display = 'block';
-  var map = new google.maps.Map(
-      document.getElementById(mapname), {zoom: 4, center: locs[0]});
-  for (var i = 0; i < locs.length; i++) {
-    var marker = new google.maps.Marker({position: locs[i], map: map});
-  }
 }
 
 function convertToSheetId(link) {
@@ -352,33 +140,51 @@ function fillSelect(name, length) {
 }
 
 function droppedLocations() {
+  dom.view.div.style.display = 'none';
+  dom.lastCalc.routesMap.style.display = 'none';
+  dom.lastCalc.div.style.display = 'block';
+  dom.lastCalc.droppedMap.style.display = 'block';
+  dom.lastCalc.routeSelect.style.display = 'none';
+
   socket.off('lastCalcRes');
-  document.getElementById('view').style.display = 'none';
-  document.getElementById('lastMapRoutes').style.display = 'none';
-  document.getElementById('lastCalcBody').style.display = 'block';
-  document.getElementById('lastMap').style.display = 'block';
-  document.getElementById('lastSelect').style.display = 'none';
   socket.emit('lastCalc', userID);
   socket.on('lastCalcRes', function(solution) {
-    var addresses = Object.values(solution.addresses);
-    addresses.shift();
-    initMapWithColors(Object.values(solution.coords), ['green', 'red', 'blue'], 'lastMap', solution.dropped, solution.start);
+    let droppedLocs = [];
+
+    if (!solution.dropped) solution.dropped = [];
+    else {
+      let ind = 0;
+      while (ind < solution.coords.length) {
+        if (solution.dropped.includes(solution.coords[ind].address)) {
+          let droppedLoc = solution.coords.splice(ind, 1);
+          droppedLocs.push(droppedLoc);
+        }
+        else ind++;
+      }
+    }
+    
+    initMapWithColors({
+      mapName: 'lastMap',
+      locMat: [solution.coords, solution.dropped, [solution.start]],
+      colors: ['green', 'red', 'blue'],
+      prefaceLabels: ['Success: ', 'Dropped: ', 'Start: '],
+    });
   })
 }
 
 function deliveryRoutes() {
   socket.off('lastCalcRes');
-  document.getElementById('view').style.display = 'none';
-  document.getElementById('lastMap').style.display = 'none';
-  document.getElementById('lastMapRoutes').style.display = 'block';
-  document.getElementById('lastCalcBody').style.display = 'block';
-  document.getElementById('lastSelect').style.display = 'block';
+  dom.view.div.style.display = 'none';
+  dom.lastCalc.droppedMap.style.display = 'none';
+  dom.lastCalc.routesMap.style.display = 'block';
+  dom.lastCalc.div.style.display = 'block';
+  dom.lastCalc.routeSelect.style.display = 'block';
   $('#lastSelect').empty();
   socket.emit('lastCalc', userID);
   socket.on('lastCalcRes', function(solution) {
     fillSelect('lastSelect', solution.routes.length);
     function refreshSelect() {
-      var newVal = document.getElementById('lastSelect').value;
+      var newVal = dom.lastCalc.routeSelect.value;
       if (!isNaN(newVal)) { // if it's a number
         initMapWithRoutes(solution.routes[parseInt(newVal)]);
       } else {
@@ -399,20 +205,27 @@ function deliveryRoutes() {
             };
           }
         }
-        initMapWithColorsNoOverlap('lastMapRoutes', solClone, null, null, {dblclick: function(marker, index, j) {
-          document.getElementById('lastSelect').value = (j+1).toString();
-          refreshSelect();
-        }});
+
+        initMapWithColors({
+          mapName: 'lastMapRoutes',
+          locMat: solClone,
+          callbacks: {
+            dblclick: function(marker, _, j) {
+              dom.lastCalc.routeSelect.value = j+1;
+              refreshSelect();
+            }
+          }
+        });
       }
     }
-    document.getElementById('lastSelect').value = '1';
-    document.getElementById('lastSelect').oninput = refreshSelect;
+    dom.lastCalc.routeSelect.value = '1';
+    dom.lastCalc.routeSelect.oninput = refreshSelect;
     initMapWithRoutes(solution.routes[0]);
   })
 }
 
 function setSelected(ind) {
-  var div = document.getElementById('lastCalcBody');
+  var div = dom.lastCalc.div;
   var sow = 0;
   for (var i = 0; i < div.children.length; i++) {
     if (div.children[i].tagName === 'BUTTON') {
@@ -441,13 +254,13 @@ function fillTable(tableId, data) {
 }
 
 function extractRange(data, callback) {
-  document.getElementById('columnPopup').style.display ='block';
-  document.getElementById('columnPopupTable').innerHTML = '';
+  dom.popups.csv.div.style.display ='block';
+  dom.popups.csv.table.innerHTML = '';
   fillTable('columnPopupTable', data);
-  var table = document.getElementById('columnPopupTable');
+  var table = dom.popups.csv.table;
   var selected = {row: -1, col: -1};
   var range = [];
-  document.getElementById('confirmExtraction').disabled = true;
+  dom.popups.csv.confirm.disabled = true;
   for (var row = 0; row < table.childElementCount; row++) (function(row) {
     for (var col = 0; col < table.children[row].childElementCount; col++) (function(col) {
       var td = table.children[row].children[col];
@@ -465,16 +278,16 @@ function extractRange(data, callback) {
             range.push(thisRow.innerHTML);
           }
           selected.row = -1;
-          document.getElementById('confirmExtraction').disabled = false;
-          document.getElementById('confirmExtraction').onclick = function() {
+          dom.popups.csv.confirm.disabled = false;
+          dom.popups.csv.confirm.onclick = function() {
             callback(range);
-            document.getElementById('columnPopup').style.display ='none';
+            dom.popups.csv.div.style.display ='none';
           };
         }
       }
     })(col);
   })(row);
-  document.getElementById('clearColumnSelection').onclick = function() {
+  dom.popups.csv.clear.onclick = function() {
     selected = {row: -1, col: -1};
     range = [];
     for (var row = 0; row < table.childElementCount; row++) {
@@ -483,37 +296,38 @@ function extractRange(data, callback) {
         td.style.backgroundColor = 'white';
       }
     }
-    document.getElementById('confirmExtraction').disabled = true;
+    dom.popups.csv.confirm.disabled = true;
   }
 }
 
 function viewAddresses() {
-  document.getElementById('removeAll').onclick = function(e) {
+  dom.view.removeAll.onclick = function(e) {
     e.preventDefault();
     socket.emit('removeAllAddresses', userID, 'patients');
     socket.emit('removeAllAddresses', userID, 'volunteers');
     viewAddresses();
   }
-  document.getElementById('removePatients').onclick = function(e) {
+  dom.view.removePatients.onclick = function(e) {
     e.preventDefault();
     socket.emit('removeAllAddresses', userID, 'patients');
     viewAddresses();
   }
-  document.getElementById('removeVolunteers').onclick = function(e) {
+  dom.view.removeVolunteers.onclick = function(e) {
     e.preventDefault();
     socket.emit('removeAllAddresses', userID, 'volunteers');
     viewAddresses();
   }
   socket.off('volunteerRes');
   socket.off('patientRes');
-  document.getElementById('view').style.display = 'block';
-  document.getElementById('lastCalcBody').style.display = 'none';
+  dom.view.div.style.display = 'block';
+  dom.lastCalc.div.style.display = 'none';
   socket.emit('getPatients', userID);
   socket.on('patientRes', function(patients) {
     socket.emit('getVolunteers', userID);
     socket.once('volunteerRes', function(volunteers) {
-      document.getElementById('mapView').style.display = 'block';
-      var rightClickCorrect = function(marker, ind, type) {
+      dom.view.map.style.display = 'block';
+
+      function rightClickCorrect(marker, ind, type) {
         socket.off('coordinatesRes');
         var locs = (type == 'patients') ? patients : volunteers;
         socket.emit('getCoordinates', locs[ind].address);
@@ -522,32 +336,55 @@ function viewAddresses() {
           locs[ind].coord = res;
           socket.emit('updateAddress', userID, type, locs[ind].address, {coord: res});
         })
-      };
+      }
+      
       if (patients && volunteers) {
+
         var types = ['patients', 'volunteers'];
-        document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
-        document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
-        initMapWithColorsNoOverlap('mapView', [patients, volunteers], ['green', 'blue'], ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '], {
-          rightclick: function(marker, ind, type) {
-            rightClickCorrect(marker, ind, types[type]);
+
+        dom.view.patientCount.innerHTML = patients.length.toString() + ' Patient Addresses';
+        dom.view.volunteerCount.innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
+        
+        initMapWithColors({
+          mapName: 'mapView',
+          locMat: [patients, volunteers],
+          colors: ['green', 'blue'],
+          prefaceLabels: ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '],
+          callbacks: {
+            rightclick: (marker, ind, type) => rightClickCorrect(marker, ind, types[type])
           }
-        } );
+        })
+
       } else if (patients) {
-        document.getElementById('patientCount').innerHTML = patients.length.toString() + ' Patient Addresses';
-        document.getElementById('volunteerCount').innerHTML = '0 Volunteer Addresses';
-        initMapWithColorsNoOverlap('mapView', [patients], ['green'], ['<b><span style = "color: green">Patient:</span></b> '], {
-          rightclick: function(marker, ind, type) {
-            rightClickCorrect(marker, ind, 'patients');
+
+        dom.view.patientCount.innerHTML = patients.length.toString() + ' Patient Addresses';
+        dom.view.volunteerCount.innerHTML = '0 Volunteer Addresses';
+
+        initMapWithColors({
+          mapName: 'mapView',
+          locMat: [patients],
+          colors: ['green'],
+          prefaceLabels: ['<b><span style = "color: green">Patient:</span></b> '],
+          callbacks: {
+            rightclick: (marker, ind, _) => rightClickCorrect(marker, ind, 'patients')
           }
-        } );
+        })
+
       } else if (volunteers) {
-        document.getElementById('patientCount').innerHTML = '0 Patient Addresses';
-        document.getElementById('volunteerCount').innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
-        initMapWithColorsNoOverlap('mapView', [volunteers], ['blue'], ['<b><span style = "color: blue">Driver:</span></b> '], {
-          rightclick: function(marker, ind, type) {
-            rightClickCorrect(marker, ind, 'volunteers');
+
+        dom.view.patientCount.innerHTML = '0 Patient Addresses';
+        dom.view.volunteerCount.innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
+
+        initMapWithColors({
+          mapName: 'mapView',
+          locMat: [volunteers],
+          colors: ['blue'],
+          prefaceLabels: ['<b><span style = "color: blue">Driver:</span></b> '],
+          callbacks: {
+            rightclick: (marker, ind, _) => rightClickCorrect(marker, ind, 'volunteers')
           }
-        } );
+        })
+
       }
     })
   })
@@ -557,7 +394,7 @@ function handleAdmin() {
   var locations = [];
   var emails = [];
 
-  var addListeners = function(arr) {
+  function addListeners(arr) {
     for (var seq of arr) (function(seq) {
       if (seq.idekWhatThisParameterDoesButImTooScaredToRemoveIt) {
         socket.off('displayMessageInPopup');
@@ -587,14 +424,23 @@ function handleAdmin() {
               for (var i = 0; i < locs.length; i++) {
                 locations.push({coord: locs[i], address: cooked[i]});
               }
-              initMapWithColorsNoOverlap(seq.map, [locations], ['yellow'], null, {rightclick: function(marker, ind, j) {
-                socket.off('coordinatesRes');
-                socket.emit('getCoordinates', cooked[ind]);
-                socket.on('coordinatesRes', function(res) {
-                  marker.setPosition(res);
-                  locations[ind].coord = res;
-                })
-              }});
+
+              initMapWithColors({
+                mapName: seq.map,
+                locMat: [locations],
+                colors: ['yellow'],
+                callbacks: {
+                  rightclick: function(marker, ind, j) {
+                    socket.off('coordinatesRes');
+                    socket.emit('getCoordinates', cooked[ind]);
+                    socket.on('coordinatesRes', function(res) {
+                      marker.setPosition(res);
+                      locations[ind].coord = res;
+                    })
+                  }
+                }
+              })
+
               seq.addAddressesButton.disabled = false;
             });
             socket.emit('getCoordinatesMult', addressesRaw);
@@ -614,14 +460,23 @@ function handleAdmin() {
                 for (var i = 0; i < locs.length; i++) {
                   locations.push({coord: locs[i], address: cooked[i]});
                 }
-                initMapWithColorsNoOverlap(seq.map, [locations], ['yellow'], null, {rightclick: function(marker, ind, j) {
-                  socket.off('coordinatesRes');
-                  socket.emit('getCoordinates', cooked[ind]);
-                  socket.on('coordinatesRes', function(res) {
-                    marker.setPosition(res);
-                    locations[ind].coord = res;
-                  })
-                }});
+
+                initMapWithColors({
+                  mapName: seq.map,
+                  locMat: [locations],
+                  colors: ['yellow'],
+                  callbacks: {
+                    rightclick: function(marker, ind, j) {
+                      socket.off('coordinatesRes');
+                      socket.emit('getCoordinates', cooked[ind]);
+                      socket.on('coordinatesRes', function(res) {
+                        marker.setPosition(res);
+                        locations[ind].coord = res;
+                      })
+                    }
+                  }
+                })
+
                 document.getElementById(seq.previewButton).disabled = true;
                 seq.addAddressesButton.disabled = false;
                 seq.addAddressesButton.onclick = function(e) {
@@ -648,26 +503,27 @@ function handleAdmin() {
   }
 
   addListeners([
-  {
-    csvInput: 'csvInput',
-    csvLabel: 'csvLabel',
-    map: 'map',
-    addressIn: 'patientAddresses',
-    previewButton: 'preview',
-    addAddressesButton: document.getElementById('addBankButton'),
-    addressType: 'patients',
-    idekWhatThisParameterDoesButImTooScaredToRemoveIt: true
-  },
-  {
-    csvInput: 'csvInputVolunteer',
-    csvLabel: 'csvLabelVolunteer',
-    map: 'mapVolunteer',
-    addressIn: 'volunteerAddresses',
-    previewButton: 'previewVolunteer',
-    addAddressesButton: document.getElementById('addVolunteerAddress'),
-    addressType: 'volunteers',
-    idekWhatThisParameterDoesButImTooScaredToRemoveIt: true
-  }]);
+    {
+      csvInput: 'csvInput',
+      csvLabel: 'csvLabel',
+      map: 'map',
+      addressIn: 'patientAddresses',
+      previewButton: 'preview',
+      addAddressesButton: dom.popups.patients.confirm,
+      addressType: 'patients',
+      idekWhatThisParameterDoesButImTooScaredToRemoveIt: true
+    },
+    {
+      csvInput: 'csvInputVolunteer',
+      csvLabel: 'csvLabelVolunteer',
+      map: 'mapVolunteer',
+      addressIn: 'volunteerAddresses',
+      previewButton: 'previewVolunteer',
+      addAddressesButton: dom.popups.volunteers.confirm,
+      addressType: 'volunteers',
+      idekWhatThisParameterDoesButImTooScaredToRemoveIt: true
+    }
+  ]);
 
   for (var cancel of document.getElementsByClassName('cancel')) {
     cancel.onclick = function(e) {
@@ -678,30 +534,32 @@ function handleAdmin() {
 
   hidePopups();
 
-  document.getElementById('addPatient').onclick = function(e) {
+  dom.tools.addPatients.onclick = function(e) {
     hidePopups();
-    document.getElementById('preview').disabled = false;
-    document.getElementById('addBankButton').disabled = true;
-    document.getElementById('addPatientDiv').style.display = 'block';
+    dom.popups.patients.previewButton.disabled = false;
+    dom.popups.patients.confirm.disabled = true;
+    dom.popups.patients.div.style.display = 'block';
   }
-  document.getElementById('addVolunteer').onclick = function(e) {
-    hidePopups();
-    document.getElementById('previewVolunteer').disabled = false;
-    document.getElementById('addVolunteerAddress').disabled = true;
-    document.getElementById('addVolunteerAddressDiv').style.display = 'block';
-  }
-  document.getElementById('viewPatient').onclick = viewAddresses;
 
-  document.getElementById('lastCalc').onclick = function(e) {
+  dom.tools.addVolunteers.onclick = function(e) {
+    hidePopups();
+    dom.popups.volunteers.previewButton.disabled = false;
+    dom.popups.volunteers.confirm.disabled = true;
+    dom.popups.volunteers.div.style.display = 'block';
+  }
+
+  dom.tools.viewAddresses.onclick = viewAddresses;
+
+  dom.tools.lastCalc.onclick = function(e) {
     e.preventDefault();
     droppedLocations();
     setSelected(0);
-    document.getElementById('droppedButton').onclick = function(e2) {
+    dom.lastCalc.droppedSwitch.onclick = function(e2) {
       e2.preventDefault();
       setSelected(0);
       droppedLocations();
     }
-    document.getElementById('deliveryRoutesButton').onclick = function(e2) {
+    dom.lastCalc.routesSwitch.onclick = function(e2) {
       e2.preventDefault();
       setSelected(1);
       deliveryRoutes();
@@ -709,9 +567,9 @@ function handleAdmin() {
   }
 }
 
-document.getElementById('routes').onclick = function(e) {
+dom.tools.calcRoutes.onclick = function(e) {
   e.preventDefault();
-  document.getElementById('calculatePopup').style.display = 'block';
+  dom.popups.calc.div.style.display = 'block';
   socket.emit('getCalcCache', userID);
   socket.on('calcCacheRes', function(res) {
     for (var inputID of Object.keys(res)) {
@@ -719,10 +577,10 @@ document.getElementById('routes').onclick = function(e) {
     }
   })
   function updateInputField() {
-    document.getElementById('numDeliv').disabled = document.getElementById('driverNumberAuto').checked;
+    dom.popups.calc.numDeliv.disabled = dom.popups.calc.autofillVolunteers.checked;
   } updateInputField();
-  document.getElementById('driverNumberAuto').oninput = updateInputField;
-  document.getElementById('confirmCalculation').onclick = function(e2){
+  dom.popups.calc.autofillVolunteers.oninput = updateInputField;
+  dom.popups.calc.confirm.onclick = function(e2){
     e2.preventDefault();
 
     socket.off('coordinatesRes');
@@ -733,9 +591,9 @@ document.getElementById('routes').onclick = function(e) {
 
     // cache it
     socket.emit('updateCalcCache', userID, {
-      depotAddressIn: document.getElementById('depotAddressIn').value,
-      maxTime: document.getElementById('maxTime').value,
-      numDeliv: document.getElementById('numDeliv').value
+      depotAddressIn: dom.popups.calc.startIn.value,
+      maxTime: dom.popups.calc.maxTime.value,
+      numDeliv: dom.popups.calc.numDeliv.value
     });
 
     var allGood = true;/*
@@ -745,10 +603,10 @@ document.getElementById('routes').onclick = function(e) {
       }
     }*/
     if (allGood) {
-      document.getElementById('confirmCalculation').innerHTML = 'getting distance matrix...';
-      document.getElementById('confirmCalculation').disabled = true;
-      var tempsawe = document.getElementById('depotAddressIn').value;
-      socket.emit('getCoordinates', document.getElementById('depotAddressIn').value);
+      dom.popups.calc.confirm.innerHTML = 'getting distance matrix...';
+      dom.popups.calc.confirm.disabled = true;
+      var tempsawe = dom.popups.calc.startIn.value;
+      socket.emit('getCoordinates', dom.popups.calc.startIn.value);
       socket.on('coordinatesRes', function(start) {
         // get driver locations
         socket.emit('getDistanceMatrix', userID, start);
@@ -757,29 +615,29 @@ document.getElementById('routes').onclick = function(e) {
           socket.on('patientRes', function(addresses) {
             res.formattedAddresses.unshift(tempsawe);
             var opts = {
-              spreadsheetid: convertToSheetId(document.getElementById('linkToSpreadsheet').value),
-              delivererCount: parseInt(document.getElementById('numDeliv').value),
+              spreadsheetid: convertToSheetId(dom.popups.calc.spreadsheetLink.value),
+              delivererCount: parseInt(dom.popups.calc.numDeliv.value),
               formattedAddresses: res.formattedAddresses
             };
-            if (document.getElementById('driverNumberAuto').checked) {
+            if (dom.popups.calc.autofillVolunteers.checked) {
               opts.delivererCount = -1;
             }
-            if (document.getElementById('maxTime').value !== '') {
-              opts.maxTime = parseInt(document.getElementById('maxTime').value);
+            if (dom.popups.calc.maxTime.value !== '') {
+              opts.maxTime = parseInt(dom.popups.calc.maxTime.value);
             } else {
               opts.maxTime = -1;
             }
-            if (document.getElementById('maxDest').value !== '') {
-              opts.maxDest = parseInt(document.getElementById('maxDest').value);
+            if (dom.popups.calc.maxDest.value !== '') {
+              opts.maxDest = parseInt(dom.popups.calc.maxDest.value);
             } else {
               opts.maxDest = -1;
             }
-            opts.shouldGenerateTravelTimes = !!document.getElementById('travelTimesCheckbox')?.checked;
+            opts.shouldGenerateTravelTimes = !!dom.popups.calc.genTravelTimes?.checked;
             // console.log(userID, res.times, opts, start, addresses);
             socket.emit('vrp', userID, res.times, opts, start, addresses);
-            document.getElementById('calculatePopup').style.display = 'none';
-            document.getElementById('confirmCalculation').innerHTML = 'Calculate';
-            document.getElementById('confirmCalculation').disabled = false;
+            dom.popups.calc.div.style.display = 'none';
+            dom.popups.calc.confirm.innerHTML = 'Calculate';
+            dom.popups.calc.confirm.disabled = false;
           });
         })
       })

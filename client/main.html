@@ -28,18 +28,6 @@
       </div>
   </div>
   
-  <div class = "centered">
-    <div id = "confirmAddress" class = "popup" style = "background-color: rgb(240, 239, 239); display: none;">
-      <div class = "center-outside">
-        <div class = "center-div">
-          <input type="text" id = "confirmAddressIn"></input>
-          <button id= "confirmAddressPreview">Preview</button>
-          <div id = "confirmAddressMap" style = "width: 60vw; height: 40vh;"></div>
-          <button id= "confirmAddressConfirm">Confirm</button>
-        </div>
-      </div>
-    </div>
-  </div>
   <div style = "display: none;" id = "lastCalcBody">
     <button class = "switchActive" id = "droppedButton">Dropped Locations</button>
     <button class = "switchNotActive" id = "deliveryRoutesButton">Delivery Routes</button>
@@ -141,6 +129,7 @@
       </div>
     </div>
   </div>
+
   <div class = "centered">
     <div id = "columnPopup" class = "popup" style = "display: none;">
       <div class = "center-outside">
@@ -155,12 +144,18 @@
       </div>
     </div>
   </div>
+
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-database.js"></script>
   <script src = "resources/js/firebase-functions.js"></script>
+  
   <script src = "resources/js/cookies.js"></script>
+
   <script src = "resources/js/papaparse.min.js"></script>
+
+  <script src = "resources/js/dom.js"></script>
+  <script src = "resources/js/maps.js"></script>
   <script src = "resources/js/main.js"></script>
 
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM"></script>
