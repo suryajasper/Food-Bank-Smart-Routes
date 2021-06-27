@@ -51,7 +51,7 @@ function replaceAll(orig, toReplace, replaceWith) {
 function getCoordinates(address) {
   address = replaceAll(address, ' ', '%20');
   // var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
-  var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AlAZE9FEAcWr3KEvVmUQOgkd_W5OteguhMDuq2mKbrkni9WHwvnGVks1EPzy68sw&maxResults=1`;
+  var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R &maxResults=1`;
   var unirest = require("unirest");
   var req = unirest("GET", url);
   return req;
@@ -60,7 +60,7 @@ function getCoordinates(address) {
 function getCoordinatesGoogle(address) {
   address = replaceAll(address, ' ', '+');
   var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
-  // var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AlAZE9FEAcWr3KEvVmUQOgkd_W5OteguhMDuq2mKbrkni9WHwvnGVks1EPzy68sw`;
+  // var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R `;
   var unirest = require("unirest");
   var req = unirest("GET", url);
   return req;
@@ -116,7 +116,7 @@ function distanceMatrix(locations1, locations2) {
 	var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
 	req.query({
 		'units': 'imperial',
-		'key': 'AlAZE9FEAcWr3KEvVmUQOgkd_W5OteguhMDuq2mKbrkni9WHwvnGVks1EPzy68sw',
+		'key': 'AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R ',
 		'origins': patientAddresses,
 		'destinations': patientAddresses2,
 		'travelMode': 'driving'
@@ -451,6 +451,7 @@ io.on('connection', function(socket){
 							var curr = 0;
 							var howMany = 0;
 							result.map(submatrix => {
+								console.log('submatrix', submatrix.body);
 								var infos = submatrix.body.resourceSets[0].resources[0].results;
 								for (var destination of infos) {
 			            times[destination.originIndex+curr].push(parseFloat(destination.travelDuration));
