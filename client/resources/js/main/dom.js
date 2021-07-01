@@ -56,10 +56,21 @@ const dom = {
 
       autofillVolunteers: gei('driverNumberAuto'),
       volunteerAddressLast: gei('driverAddressLast'),
+      
+      confirm: gei('confirmCalculation'),
+    },
+    
+    routeTable: {
+      div: gei('routeTablePopup'),
+      
+      head: gei('routeTablePopupThead'),
+      body: gei('routeTablePopupTbody'),
+      
       genTravelTimes: gei('travelTimesCheckbox'),
       spreadsheetLink: gei('linkToSpreadsheet'),
       
-      confirm: gei('confirmCalculation'),
+      rerun: gei('routeTableRerun'),
+      confirm: gei('routeTableConfirm'),
     }
   },
 

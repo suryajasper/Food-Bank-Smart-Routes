@@ -131,6 +131,24 @@ function extractRange(data, callback) {
   }
 }
 
+function parseSheetsObj(table) {
+  console.log(table);
+
+  fillTable(dom.popups.routeTable.head.id, [table.headers], header=true);
+
+  let body = [];
+
+  for (let row of table.body) {
+    let newRow = [];
+    for (let headerEl of table.headers) {
+      newRow.push(row[headerEl] ? row[headerEl] : '');
+    }
+    body.push(newRow);
+  }
+
+  fillTable(dom.popups.routeTable.body.id, body);
+}
+
 function viewAddresses() {
   dom.view.removeAll.onclick = function(e) {
     e.preventDefault();
@@ -345,7 +363,8 @@ dom.tools.calcRoutes.onclick = function(e) {
   socket.emit('getCalcCache', userID);
   socket.on('calcCacheRes', function(res) {
     for (var inputID of Object.keys(res)) {
-      document.getElementById(inputID).value = res[inputID];
+      let el = document.getElementById(inputID);
+      if (el) el.value = res[inputID];
     }
   })
 
@@ -360,7 +379,8 @@ dom.tools.calcRoutes.onclick = function(e) {
     socket.off('coordinatesRes');
     socket.off('distanceMatrixRes');
     socket.off('patientRes');
-
+    socket.off('vrpTable');
+    
     // cache it
     socket.emit('updateCalcCache', userID, {
       depotAddressIn: dom.popups.calc.startIn.value,
@@ -386,7 +406,6 @@ dom.tools.calcRoutes.onclick = function(e) {
           res.formattedAddresses.unshift(tempsawe);
 
           var opts = {
-            spreadsheetid: convertToSheetId(dom.popups.calc.spreadsheetLink.value),
             delivererCount: parseInt(dom.popups.calc.numDeliv.value),
             formattedAddresses: res.formattedAddresses
           };
@@ -402,9 +421,45 @@ dom.tools.calcRoutes.onclick = function(e) {
             opts.maxDest = parseInt(dom.popups.calc.maxDest.value);
           else opts.maxDest = -1;
 
-          opts.shouldGenerateTravelTimes = !!dom.popups.calc.genTravelTimes?.checked;
+          opts.shouldGenerateTravelTimes = true;
 
           socket.emit('vrp', userID, res.times, opts, start, addresses);
+
+          socket.on('vrpTable', function(table) {
+            console.log('table', table);
+
+            let timeHeaders = table.headers.filter(header => header.startsWith('Travel Time'));
+
+            let tableClean = {
+              headers: table.headers.filter(header => !header.startsWith('Travel Time')),
+              body: table.body.map(row => {
+                let cpy = Object.assign({}, row);
+                timeHeaders.forEach(header => delete cpy[header]);
+                return cpy;
+              })
+            };
+
+            dom.popups.routeTable.div.style.display = 'block';
+            
+            parseSheetsObj(dom.popups.routeTable.genTravelTimes.checked ? table : tableClean);
+
+            dom.popups.routeTable.genTravelTimes.oninput = e => {
+              console.log(e.target.checked, e.target.checked ? table : tableClean);
+              parseSheetsObj(e.target.checked ? table : tableClean);
+            }
+
+            dom.popups.routeTable.rerun.onclick = function() {
+              hidePopups();
+              dom.tools.calcRoutes.click();
+            }
+
+            dom.popups.routeTable.confirm.onclick = function() {
+              socket.emit('uploadToSpreadsheet', 
+                          convertToSheetId(dom.popups.routeTable.spreadsheetLink.value), // spreadsheet id
+                          dom.popups.routeTable.genTravelTimes.checked ? table : tableClean); // content
+              hidePopups();
+            }
+          })
 
           dom.popups.calc.div.style.display = 'none';
           dom.popups.calc.confirm.innerHTML = 'Calculate';

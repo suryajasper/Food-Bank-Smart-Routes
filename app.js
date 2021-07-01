@@ -125,44 +125,54 @@ function distanceMatrix(locations1, locations2) {
 	return req;
 }
 
-async function writeToSheet(id, sol, shouldGenerateTravelTimes) {
-	var doc = new GoogleSpreadsheet(id);
-	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
-	var _headers = ['Time'];
+function generateRouteTable(sol, shouldGenerateTravelTimes) {
+	let headers = ['Time'];
 
 	let maxDest = maxLength(sol.routes);
 
-	for (var i = 0; i < maxDest; i++) {
-		_headers.push(`Destination ${i+1}`);
+	for (let i = 0; i < maxDest; i++) {
+		headers.push(`Destination ${i+1}`);
 		if (shouldGenerateTravelTimes) {
-			_headers.push(`Travel Time ${i+1}-${i+2}`);
+			headers.push(`Travel Time ${i+1}-${i+2}`);
 		}
 	}
-	_headers.push('Dropped');
+	headers.push('Dropped');
 
-	var droppedTracker = 0;
+	let droppedTracker = 0;
 
-	var indTimes = getIndividualTimes(sol.routes, sol.addresses, sol.matrix);
-	doc.addWorksheet({headers: _headers}, async function(addWorksheetErr, newSheet) {
+	let indTimes = getIndividualTimes(sol.routes, sol.addresses, sol.matrix);
+	
+	let body = [];
+
+	for (var i = 0; i < sol.routes.length; i++) {
+		var row = {Time: sol.times[i].toString()};
+
+		for (var j = 0; j < sol.routes[i].length; j++)
+			row[`Destination ${j+1}`] = sol.routes[i][j].trim();
+		
+		if (shouldGenerateTravelTimes)
+			for (var j = 0; j < indTimes[i].length; j++)
+				row[`Travel Time ${j+1}-${j+2}`] = indTimes[i][j];
+		
+		if (droppedTracker < sol.dropped.length)
+			row['Dropped'] = sol.dropped[droppedTracker];
+		
+		droppedTracker++;
+		
+		body.push(row);
+	}
+
+	return { headers, body };
+}
+
+async function writeToSheet(id, table) {
+	var doc = new GoogleSpreadsheet(id);
+
+	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
+
+	doc.addWorksheet({headers: table.headers}, async function(addWorksheetErr, newSheet) {
 	  if (addWorksheetErr) console.error(addWorksheetErr);
-	  else {
-			for (var i = 0; i < sol.routes.length; i++) {
-				var row = {Time: sol.times[i].toString()};
-
-				for (var j = 0; j < sol.routes[i].length; j++)
-					row[`Destination ${j+1}`] = sol.routes[i][j].trim();
-				
-				if (shouldGenerateTravelTimes)
-					for (var j = 0; j < indTimes[i].length; j++)
-						row[`Travel Time ${j+1}-${j+2}`] = indTimes[i][j];
-				
-				if (droppedTracker < sol.dropped.length)
-					row['Dropped'] = sol.dropped[droppedTracker];
-				
-				droppedTracker++;
-				await promisify(newSheet.addRow)(row);
-			}
-	  }
+	  else for (var row of table.body) await promisify(newSheet.addRow)(row);
 	});
 }
 
@@ -521,7 +531,7 @@ io.on('connection', function(socket){
 		
 		console.log('--GET VRP request');
 		
-		var afterAutoFill = function(opts) {
+		function afterAutoFill(opts) {
 			var toSend = {matrix: distanceMatrix, options: opts};
 			req.send(JSON.stringify(toSend));
 			req.then((response) => {
@@ -533,8 +543,11 @@ io.on('connection', function(socket){
 				update[userID] = response.body;
 				update[userID].coords = locs;
 				lastCalc.update(update);
-				console.log(TerminalColors.GREEN, '--WRITE VRP to sheet: ' + 'https://docs.google.com/spreadsheets/d/' + opts.spreadsheetid);
-				writeToSheet(opts.spreadsheetid, response.body, opts.shouldGenerateTravelTimes);
+
+				socket.emit('vrpTable', generateRouteTable(response.body, opts.shouldGenerateTravelTimes));
+
+				// console.log(TerminalColors.GREEN, '--WRITE VRP to sheet: ' + 'https://docs.google.com/spreadsheets/d/' + opts.spreadsheetid);
+				// writeToSheet(opts.spreadsheetid, response.body, opts.shouldGenerateTravelTimes);
 			})
 		}
 		
@@ -549,6 +562,11 @@ io.on('connection', function(socket){
 			afterAutoFill(_options);
 		}
 	});
+
+	socket.on('uploadToSpreadsheet', function(spreadsheetid, content) {
+		console.log(`--WRITE VRP to sheet (https://docs.google.com/spreadsheets/d/${spreadsheetid})`);
+		writeToSheet(spreadsheetid, content);
+	})
 });
 
 http.listen(port, function(){

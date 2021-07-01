@@ -117,11 +117,6 @@
               <h4>Use Number of Drivers Stored</h4><input id="driverNumberAuto" type="checkbox"></input>
               <h4>Use Drivers' Home Addresses For Last Stop</h4><input id="driverAddressLast" type="checkbox"></input>
             </div>
-            <h3>Configure generated spreadsheet data</h3>
-            <input id="travelTimesCheckbox" type="checkbox">Generate travel times between destinations in spreadsheet</input>
-            <h3>Link to spreadsheet</h3>
-            <input id = "linkToSpreadsheet" type = "text"></input>
-            <p>Make sure to give editor permissions to freshproduceprogram-smartroute@suryajasper-website.iam.gserviceaccount.com and add link. Check out <a href = "https://docs.google.com/document/d/1kJJv-Imzshnf29RiAujNglHbUoPon9CECZpupqZ8b8k/edit?usp=sharing">this reference guide</a> for more info.</p>
             <button class = "cancel">Cancel</button>
             <button id = "confirmCalculation">Calculate</button>
           </form>
@@ -140,6 +135,34 @@
           </table>
           <button id = "clearColumnSelection">Clear Selection</button>
           <button id = "confirmExtraction">Extract</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class = "centered">
+    <div id = "routeTablePopup" class = "popup" style = "display: block;">
+      <div class = "center-outside">
+        <div class = "center-div">
+
+          <table class = "routeTablePopupTable">
+            
+            <thead id="routeTablePopupThead"></thead>
+            <tbody id="routeTablePopupTbody"></tbody>
+            
+          </table>
+
+          <div class = "inline-children">
+            <input id="travelTimesCheckbox" type="checkbox">Generate travel times between destinations in spreadsheet</input>
+            <button id = "routeTableRerun">Rerun</button>
+          </div>
+          <div class = "inline-children">
+            <h3>Link to spreadsheet</h3>
+            <input id = "linkToSpreadsheet" type = "text"></input>
+            <button id = "routeTableConfirm">Confirm</button>
+          </div>
+          <!--p>Make sure to give editor permissions to freshproduceprogram-smartroute@suryajasper-website.iam.gserviceaccount.com and add link. Check out <a href = "https://docs.google.com/document/d/1kJJv-Imzshnf29RiAujNglHbUoPon9CECZpupqZ8b8k/edit?usp=sharing">this reference guide</a> for more info.</p-->
+
         </div>
       </div>
     </div>

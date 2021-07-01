@@ -25,10 +25,8 @@ function fillSelect(name, length) {
 }
 
 function hidePopups() {
-  dom.popups.patients.div.style.display = 'none';
-  dom.popups.volunteers.div.style.display = 'none';
-  dom.popups.calc.div.style.display = 'none';
-  dom.popups.csv.div.style.display = 'none';
+  for (let popup in dom.popups)
+    dom.popups[popup].div.style.display = 'none';
 
   dom.popups.patients.fileInLabel.innerHTML = 'import a .csv file';
   dom.popups.volunteers.fileInLabel.innerHTML = 'import a .csv file';
@@ -56,12 +54,13 @@ function setSelected(ind) {
   }
 }
 
-function fillTable(tableId, data) {
+function fillTable(tableId, data, header=false) {
   var table = document.getElementById(tableId);
+  $(table).empty();
   for (var row of data) {
     var tr = document.createElement('tr');
     for (var el of row) {
-      var td = document.createElement('td');
+      var td = document.createElement(header ? 'th' : 'td');
       td.innerHTML = el;
       tr.appendChild(td);
     }
