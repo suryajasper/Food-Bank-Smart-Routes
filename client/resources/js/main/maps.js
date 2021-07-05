@@ -38,19 +38,54 @@ function initMapWithColors({mapName, locMat, colors, prefaceLabels, callbacks}) 
   document.getElementById(mapName).style.display = 'block';
 
   map = new google.maps.Map(document.getElementById(mapName), {zoom: 4, center: locMat[0][0].coord});
-  const iw = new google.maps.InfoWindow();
   const bounds = new google.maps.LatLngBounds();
-
+  
   socket.off('colorsRes');
+  const iw = new google.maps.InfoWindow();
 
+  let activeMarker = {
+    marker: null,
+    ind: [-1, -1]
+  };
+
+  iw.addListener('domready', function() {
+    console.log(activeMarker);
+
+    const input = document.querySelector('.marker-info-input');
+    const hide = input.previousElementSibling;
+
+    const startVal = input.value;
+    
+    function resize() {
+      hide.textContent = input.value;
+      input.style.width = `${hide.offsetWidth+20}px`;
+    }
+    
+    function update() {
+      input.onblur = null;
+      input.blur();
+      input.onblur = update;
+      if (callbacks.update && input.value !== startVal) callbacks.update(activeMarker.marker, input.value, ...activeMarker.ind);
+    }
+    
+    input.oninput = resize;
+    resize();
+
+    input.blur();
+    setTimeout(() => input.blur(), 100)
+
+    input.onkeydown = e => { if (e.key === 'Enter') update(); }
+    input.onblur = update;
+  })
+  
   function render(_colors) {
     for (let j = 0; j < locMat.length; j++) (function(j) {
-
+      
       let locs = locMat[j];
       let color = _colors[j];
-
+      
       for (let i = 0; i < locs.length; i++) {
-
+        
         // init marker
         let markObj = {
           map: map, 
@@ -60,8 +95,13 @@ function initMapWithColors({mapName, locMat, colors, prefaceLabels, callbacks}) 
           icon: createMarkerImage(color)
         };
         if (prefaceLabels)
-          markObj.info = prefaceLabels[j] + markObj.info;
+          markObj.info = `
+            ${prefaceLabels[j]} <span class="hide-span"></span>
+            <input class="hide-until-focus marker-info-input" value="${markObj.info}">
+          `;
         let marker = createMarker(markObj);
+
+        marker.addListener('click', function() { activeMarker = { marker: marker, ind: [i, j] }; })
 
         // setup callbacks
         if (callbacks) {

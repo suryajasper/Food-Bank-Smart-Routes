@@ -181,65 +181,32 @@ function viewAddresses() {
 
       dom.view.map.style.display = 'block';
 
-      function rightClickCorrect(marker, ind, type) {
+      function correctAddress(marker, loc, type) {
         socket.off('coordinatesRes');
-        var locs = (type == 'patients') ? patients : volunteers;
-        socket.emit('getCoordinates', locs[ind].address);
+        socket.emit('getCoordinates', loc.address);
         socket.on('coordinatesRes', function(res) {
           marker.setPosition(res);
-          locs[ind].coord = res;
-          socket.emit('updateAddress', userID, type, locs[ind].address, {coord: res});
+          loc.coord = res;
+          socket.emit('updateAddress', userID, type, loc.address, {coord: res});
         })
       }
+
+      let types  = ['patients'      , 'volunteers'      ];
+      let locMat = [ patients || [] ,  volunteers || [] ];
+
+      dom.view.patientCount.innerHTML   = `${locMat[0].length} ${types[0]}`;
+      dom.view.volunteerCount.innerHTML = `${locMat[1].length} ${types[1]}`;
       
-      if (patients && volunteers) {
-
-        var types = ['patients', 'volunteers'];
-
-        dom.view.patientCount.innerHTML = patients.length.toString() + ' Patient Addresses';
-        dom.view.volunteerCount.innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
-        
-        initMapWithColors({
-          mapName: 'mapView',
-          locMat: [patients, volunteers],
-          colors: ['green', 'blue'],
-          prefaceLabels: ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '],
-          callbacks: {
-            rightclick: (marker, ind, type) => rightClickCorrect(marker, ind, types[type])
-          }
-        })
-
-      } else if (patients) {
-
-        dom.view.patientCount.innerHTML = patients.length.toString() + ' Patient Addresses';
-        dom.view.volunteerCount.innerHTML = '0 Volunteer Addresses';
-
-        initMapWithColors({
-          mapName: 'mapView',
-          locMat: [patients],
-          colors: ['green'],
-          prefaceLabels: ['<b><span style = "color: green">Patient:</span></b> '],
-          callbacks: {
-            rightclick: (marker, ind, _) => rightClickCorrect(marker, ind, 'patients')
-          }
-        })
-
-      } else if (volunteers) {
-
-        dom.view.patientCount.innerHTML = '0 Patient Addresses';
-        dom.view.volunteerCount.innerHTML = volunteers.length.toString() + ' Volunteer Addresses';
-
-        initMapWithColors({
-          mapName: 'mapView',
-          locMat: [volunteers],
-          colors: ['blue'],
-          prefaceLabels: ['<b><span style = "color: blue">Driver:</span></b> '],
-          callbacks: {
-            rightclick: (marker, ind, _) => rightClickCorrect(marker, ind, 'volunteers')
-          }
-        })
-
-      }
+      initMapWithColors({
+        mapName: 'mapView',
+        locMat: locMat,
+        colors: ['green', 'blue'],
+        prefaceLabels: ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '],
+        callbacks: {
+          rightclick: (marker, ind, type) => correctAddress(marker, locMat[type][ind], types[type]),
+          update: (marker, newAddress, ind, type) => correctAddress(marker, { address: newAddress, coord: locMat[type][ind].coord }, types[type])
+        }
+      })
     })
   })
 }
