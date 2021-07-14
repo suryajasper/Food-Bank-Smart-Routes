@@ -181,14 +181,20 @@ function viewAddresses() {
 
       dom.view.map.style.display = 'block';
 
-      function correctAddress(marker, loc, type) {
+      function correctAddress(marker, loc, newAddress, type) {
         socket.off('coordinatesRes');
-        socket.emit('getCoordinates', loc.address);
+        socket.emit('getCoordinates', newAddress);
         socket.on('coordinatesRes', function(res) {
           marker.setPosition(res);
           loc.coord = res;
-          socket.emit('updateAddress', userID, type, loc.address, {coord: res});
+          socket.emit('updateAddress', userID, type, loc.address, {address: newAddress, coord: res});
+          loc.address = newAddress;
         })
+      }
+
+      function removeAddress(marker, loc, type) {
+        marker.setMap(null);
+        socket.emit('deleteAddress', userID, type, loc.address);
       }
 
       let types  = ['patients'      , 'volunteers'      ];
@@ -197,14 +203,17 @@ function viewAddresses() {
       dom.view.patientCount.innerHTML   = `${locMat[0].length} ${types[0]}`;
       dom.view.volunteerCount.innerHTML = `${locMat[1].length} ${types[1]}`;
       
+      console.log(locMat);
+
       initMapWithColors({
         mapName: 'mapView',
         locMat: locMat,
         colors: ['green', 'blue'],
         prefaceLabels: ['<b><span style = "color: green">Patient:</span></b> ', '<b><span style = "color: blue">Driver:</span></b> '],
         callbacks: {
-          rightclick: (marker, ind, type) => correctAddress(marker, locMat[type][ind], types[type]),
-          update: (marker, newAddress, ind, type) => correctAddress(marker, { address: newAddress, coord: locMat[type][ind].coord }, types[type])
+          rightclick: (marker, ind, type)             => correctAddress(marker, locMat[type][ind], locMat[type][ind], types[type]),
+          update:     (marker, newAddress, ind, type) => correctAddress(marker, locMat[type][ind], newAddress       , types[type]),
+          remove:     (marker, ind, type)             =>  removeAddress(marker, locMat[type][ind],                    types[type])
         }
       })
     })

@@ -531,7 +531,7 @@ table.columnPopupTable td:hover {
 	line-height: 22px;
 	margin: 0;
 	min-width: 1px;
-	padding: 2px 7px;
+	padding: 2px 3px;
   outline: none;
 }
 
@@ -551,4 +551,24 @@ table.columnPopupTable td:hover {
   height: 0;
   overflow: hidden;
   white-space: pre;
+}
+
+.cancel-svg-container {
+  height: 20px;
+  width: 20px;
+  margin-right: 10px;
+}
+
+.cancel-svg {
+  height: 100%;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cancel-svg:hover {
+  fill: red;
+}
+
+.marker-info-container {
+  font-size: 15px;
 }

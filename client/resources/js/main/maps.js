@@ -34,10 +34,24 @@ function createMarker(m) {
   return marker;
 }
 
+function createIwString(prefaceLabel, info) {
+  return `
+    <div class = "marker-info-container inline-children">
+      ${prefaceLabel} <span class="hide-span"></span>
+      <input title = "Modify Address" class="hide-until-focus marker-info-input" value="${info}">
+      <div title = "Remove Address" class = "cancel-svg-container">
+        <svg viewBox="0 0 24 24" class = "cancel-svg remove-address-button">
+          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+        </svg>
+      </div>
+    </div>
+  `;
+}
+
 function initMapWithColors({mapName, locMat, colors, prefaceLabels, callbacks}) {
   document.getElementById(mapName).style.display = 'block';
 
-  map = new google.maps.Map(document.getElementById(mapName), {zoom: 4, center: locMat[0][0].coord});
+  map = new google.maps.Map(document.getElementById(mapName), {zoom: 4, center: (locMat[0][0] || locMat[1][0]).coord});
   const bounds = new google.maps.LatLngBounds();
   
   socket.off('colorsRes');
@@ -48,35 +62,43 @@ function initMapWithColors({mapName, locMat, colors, prefaceLabels, callbacks}) 
     ind: [-1, -1]
   };
 
-  iw.addListener('domready', function() {
-    console.log(activeMarker);
+  if (callbacks.update) {
+    iw.addListener('domready', function() {
+      console.log(activeMarker);
+  
+      const input = document.querySelector('.marker-info-input');
+      const hide = input.previousElementSibling;
+      const removeButton = input.nextElementSibling.querySelector('.remove-address-button');
+  
+      const startVal = input.value;
+      
+      function resize() {
+        hide.textContent = input.value;
+        input.style.width = `${hide.offsetWidth+10}px`;
+      }
+      
+      function update() {
+        input.onblur = null;
+        input.blur();
+        input.onblur = update;
 
-    const input = document.querySelector('.marker-info-input');
-    const hide = input.previousElementSibling;
-
-    const startVal = input.value;
-    
-    function resize() {
-      hide.textContent = input.value;
-      input.style.width = `${hide.offsetWidth+20}px`;
-    }
-    
-    function update() {
-      input.onblur = null;
+        if (input.value !== startVal) callbacks.update(activeMarker.marker, input.value, ...activeMarker.ind);
+        startVal = input.value;
+        // activeMarker.iw.setInfo(createIwString(prefaceLabels, input.value));
+      }
+      
+      input.oninput = resize;
+      resize();
+  
       input.blur();
+      setTimeout(() => input.blur(), 100)
+  
+      input.onkeydown = e => { if (e.key === 'Enter') update(); }
       input.onblur = update;
-      if (callbacks.update && input.value !== startVal) callbacks.update(activeMarker.marker, input.value, ...activeMarker.ind);
-    }
-    
-    input.oninput = resize;
-    resize();
 
-    input.blur();
-    setTimeout(() => input.blur(), 100)
-
-    input.onkeydown = e => { if (e.key === 'Enter') update(); }
-    input.onblur = update;
-  })
+      removeButton.onclick = e => callbacks.remove(activeMarker.marker, ...activeMarker.ind);
+    })
+  }
   
   function render(_colors) {
     for (let j = 0; j < locMat.length; j++) (function(j) {
@@ -94,14 +116,17 @@ function initMapWithColors({mapName, locMat, colors, prefaceLabels, callbacks}) 
           info: locs[i].address, 
           icon: createMarkerImage(color)
         };
-        if (prefaceLabels)
-          markObj.info = `
-            ${prefaceLabels[j]} <span class="hide-span"></span>
-            <input class="hide-until-focus marker-info-input" value="${markObj.info}">
-          `;
+        if (prefaceLabels) {
+          if (callbacks.update) {
+            markObj.info = createIwString(prefaceLabels[j], markObj.info);
+          } else {
+            markObj.info = `${prefaceLabels[j]} ${markObj.info}`;
+          }
+        }
+
         let marker = createMarker(markObj);
 
-        marker.addListener('click', function() { activeMarker = { marker: marker, ind: [i, j] }; })
+        marker.addListener('click', function() { activeMarker = { marker, iw: markObj.iw, ind: [i, j] }; })
 
         // setup callbacks
         if (callbacks) {

@@ -190,6 +190,7 @@ io.on('connection', function(socket){
 		}
 		curr.update(data);
 	})
+
 	socket.on('setDatabase', function(path, data) {
 		var curr = database.ref(path[0]);
 		for (var i = 1; i < path.length; i++) {
@@ -197,6 +198,7 @@ io.on('connection', function(socket){
 		}
 		curr.set(data);
 	})
+
 	socket.on('getDatabase', function(path) {
 		var curr = database.ref(path[0]);
 		for (var i = 1; i < path.length; i++) {
@@ -212,14 +214,17 @@ io.on('connection', function(socket){
   socket.on('createAdmin', function(userID, _email, _accountPassword) {
     adminInfo.child(userID).update({email: _email, accountPassword: _accountPassword});
 	});
+
   socket.on('createDeliverer', function(userID, _email) {
     deliverInfo.child(userID).set({email: _email});
   })
+
   socket.on('bruhAmIAdminOrNot', function(userID) {
     adminInfo.once('value', function(snapshot) {
       socket.emit('youAreNotTheAdmin', Object.keys(snapshot.val()).includes(userID));
     })
   })
+
   socket.on('checkRegularUser', function(email, password) {
     adminInfo.once('value', function(snapshot) {
       var admins = snapshot.val();
@@ -239,6 +244,7 @@ io.on('connection', function(socket){
       socket.emit('userRegistered', good, isAdmin);
     })
   });
+
   socket.on('getCoordinates', function(address) {
     var req = getCoordinatesGoogle(replaceAll(replaceAll(address, '#', ''), '/', ''));
     req.end(function(res) {
@@ -248,9 +254,7 @@ io.on('connection', function(socket){
       }
     });
   });
-  var reportError = function(msg) {
-		socket.emit('reporterror', msg);
-	}
+	
   socket.on('getCoordinatesMult', function(addresses) {
 		console.log('--RECEIVED coordinates mult: ' + addresses.length.toString() + ' addresses');
 
@@ -330,6 +334,7 @@ io.on('connection', function(socket){
       }
     });
   });
+
   socket.on('addAddresses', function(userID, locs, type) {
 		if (!type) type = 'patients';
 		console.log('--RECEIVED patient addresses: ' + locs.length.toString() + ' locations');
@@ -339,7 +344,7 @@ io.on('connection', function(socket){
 				for (var i = 0; i < locs.length; i++)
 					update[i] = locs[i];
       } else {
-				var offset = Object.keys(snapshot.val()).length;
+				var offset = Math.max(...Object.keys(snapshot.val()))+1;
         for (var i = 0; i < locs.length; i++)
 					update[offset+i] = locs[i];
 			}
@@ -363,6 +368,7 @@ io.on('connection', function(socket){
         }
       }
     })
+		matrixSave.child(userID).remove();
   });
 
   socket.on('deleteAddress', function(userID, type, addressOld) {
@@ -376,6 +382,7 @@ io.on('connection', function(socket){
         }
       }
     })
+		matrixSave.child(userID).remove();
   });
 
   socket.on('removeAllAddresses', function(userID, type) {
@@ -395,9 +402,9 @@ io.on('connection', function(socket){
     adminInfo.child(userID).child('patients').once('value', function(snapshot) {
 			if (snapshot.val() !== null) {
 				console.log(TerminalColors.GREEN, '--SEND patients SUCCESS');
-        socket.emit('patientRes', snapshot.val());
+        socket.emit('patientRes', Object.values(snapshot.val()));
       } else {
-				console.log(TerminalColors.RED, '--SEND patients  (no patients)');
+				console.log(TerminalColors.RED, '--SEND patients (no patients)');
 				socket.emit('patientRes', null);
 			}
     })
@@ -408,7 +415,7 @@ io.on('connection', function(socket){
     adminInfo.child(userID).child('volunteers').once('value', function(snapshot) {
       if (snapshot.val() !== null) {
 				console.log(TerminalColors.GREEN, '--SEND volunteers SUCCESS');
-        socket.emit('volunteerRes', snapshot.val());
+        socket.emit('volunteerRes', Object.values(snapshot.val()));
       } else {
 				console.log(TerminalColors.RED, '--SEND volunteers NULL (no volunteers)');
 				socket.emit('volunteerRes', null);
@@ -427,7 +434,7 @@ io.on('connection', function(socket){
 				console.log('--SEND previous distance matrix');
 			} else {
 				adminInfo.child(userID).child('patients').once('value', function(snapshot) {
-					let raw_locs = snapshot.val();
+					let raw_locs = Object.values(snapshot.val());
 
 					let formattedAddresses = raw_locs.map(loc => loc.address);
 
@@ -554,7 +561,7 @@ io.on('connection', function(socket){
 		if (_options.delivererCount < 0) {
 			adminInfo.child(userID).child('volunteers').once('value', function(snap) {
 				if (snap.val() !== null) {
-					_options.delivererCount = snap.val().length;
+					_options.delivererCount = Object.values(snap.val()).length;
 					afterAutoFill(_options);
 				}
 			})
