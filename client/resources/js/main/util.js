@@ -13,8 +13,7 @@ function randInt(min, max) {
 }
 
 function convertToSheetId(link) {
-  var startDelimiter = 'spreadsheets/d/';
-  return link.substring(link.indexOf(startDelimiter)+startDelimiter.length).split('/')[0];
+  return link.split('/d/')[1].split('/edit')[0];
 }
 
 function btr(bool) {

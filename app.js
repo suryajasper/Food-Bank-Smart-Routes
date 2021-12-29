@@ -1,10 +1,11 @@
-var admin = require('firebase-admin');
-var express = require('express');
-var colorGen = require('iwanthue');
-var bodyParser = require('body-parser');
-var GoogleSpreadsheet = require('google-spreadsheet');
-var {promisify} = require('util');
-var app = express();
+const admin = require('firebase-admin');
+const express = require('express');
+const colorGen = require('iwanthue');
+const GoogleSpreadsheet = require('google-spreadsheet');
+const {promisify} = require('util');
+const unirest = require('unirest');
+
+const app = express();
 app.use(express.static(__dirname + '/client', { extensions: ['html'] }));
 app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4002');
@@ -12,12 +13,9 @@ app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
 	next();
 });
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
-var port = process.env.PORT || 4002;
-
-//var node_or_tools = require('node_or_tools');
-var util = require('util');
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+const port = process.env.PORT || 4002;
 
 const TerminalColors = {
 	BLACK : "\x1b[30m%s\x1b[0m",
@@ -51,7 +49,7 @@ function replaceAll(orig, toReplace, replaceWith) {
 function getCoordinates(address) {
   address = replaceAll(address, ' ', '%20');
   // var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
-  var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R &maxResults=1`;
+  var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AoU-UkBigtGZIorCXRzwbHH48O4npDlzC2Axe8JxG-fXrYYFxbtaBnNynVTNiZMg &maxResults=1`;
   var unirest = require("unirest");
   var req = unirest("GET", url);
   return req;
@@ -116,7 +114,7 @@ function distanceMatrix(locations1, locations2) {
 	var req = require('unirest')("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
 	req.query({
 		'units': 'imperial',
-		'key': 'AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R ',
+		'key': 'AoU-UkBigtGZIorCXRzwbHH48O4npDlzC2Axe8JxG-fXrYYFxbtaBnNynVTNiZMg ',
 		'origins': patientAddresses,
 		'destinations': patientAddresses2,
 		'travelMode': 'driving'
@@ -166,6 +164,9 @@ function generateRouteTable(sol, shouldGenerateTravelTimes) {
 }
 
 async function writeToSheet(id, table) {
+
+	console.log(table);
+
 	var doc = new GoogleSpreadsheet(id);
 
 	await promisify(doc.useServiceAccountAuth)(googleDrive_serviceAccount);
@@ -176,11 +177,11 @@ async function writeToSheet(id, table) {
 	});
 }
 
-var database = admin.database();
-var adminInfo = database.ref('adminInfo');
-var deliverInfo = database.ref('deliverInfo');
-var lastCalc = database.ref('lastCalc');
-var matrixSave = database.ref('matrix');
+const database = admin.database();
+const adminInfo = database.ref('adminInfo');
+const deliverInfo = database.ref('deliverInfo');
+const lastCalc = database.ref('lastCalc');
+const matrixSave = database.ref('matrix');
 
 io.on('connection', function(socket){
 	socket.on('updateDatabase', function(path, data) {
@@ -533,6 +534,7 @@ io.on('connection', function(socket){
 	})
 	
 	socket.on('vrp', function(userID, distanceMatrix, _options, start, locs) {
+		console.log(distanceMatrix[0].length, _options.formattedAddresses.length);
 		var req = require('unirest')("POST", 'http://104.198.222.54:4003/vrp');
 		req.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
 		
@@ -560,7 +562,7 @@ io.on('connection', function(socket){
 		
 		if (_options.delivererCount < 0) {
 			adminInfo.child(userID).child('volunteers').once('value', function(snap) {
-				if (snap.val() !== null) {
+				if (snap.val()) {
 					_options.delivererCount = Object.values(snap.val()).length;
 					afterAutoFill(_options);
 				}
