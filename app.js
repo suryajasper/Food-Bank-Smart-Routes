@@ -74,13 +74,7 @@ admin.initializeApp({
 });
 
 function maxLength(arr) {
-  var max = 0;
-	for (var subarr of arr) {
-    if (subarr.length > max) {
-      max = subarr.length;
-    }
-  }
-  return max;
+  return Math.max(...arr.map(sub => sub.length));
 }
 
 function getIndividualTimes(_routes, addresses, matrix) {
@@ -177,40 +171,79 @@ async function writeToSheet(id, table) {
 	});
 }
 
+function cleanAddress(address) {
+	return replaceAll(replaceAll(address, '#', ''), '/', '')
+}
+
 const database = admin.database();
 const adminInfo = database.ref('adminInfo');
 const deliverInfo = database.ref('deliverInfo');
 const lastCalc = database.ref('lastCalc');
 const matrixSave = database.ref('matrix');
 
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json());
+
+app.post('/getCoordinates', (req, res) => {
+	console.log(req.body.address);
+	getCoordinatesGoogle(cleanAddress(req.body.address))
+    .end(gRes => {
+      if (gRes.error) console.log(gRes.error);
+      else res.json(gRes.body.results[0].geometry.location);
+    });
+})
+
+app.post('/getCoordinatesMult', (req, res) => {
+
+	// test: {"addresses": ["213 Denver Avenue Durham NC 27704", "2920 Chapel Hill Road, Apt 53B, Durham, NC 27707", "2413 Southern Dr. Durham NC 27703", "1705 Gunter St, APT A, Durham", "5010 Glenn Road Durham NC 27704", "1210 Midland Terrace, Durham 27704", "209 North Guthrie Ave, Durham, 27703", "514 N Guthrie Ave, Durham NC 27703", "4001 Meriwether Dr., Apt J12 Durham NC 27704", "3627 Dearborn Drive, Durham, NC 27704", "800 E C St., lot #15, Butner, NC", "545 Liberty Street, Apt. 23, Durham NC 27701", "407 Virginia Cates Road Hillsborough, NC 27278", "3010 Firth Rd Durham NC 27704", "4931 Howe St Durham", "202 N Briggs Ave Durham NC 27703", "1321 newcastle rd apt d19 Durham, NC 27704"]}
+
+	const addresses = req.body.addresses;
+
+	console.log(`--RECEIVED coordinates mult: ${addresses.length} addresses`);
+
+	const results = addresses.map(address => 
+		new Promise((resolve, reject) => 
+			getCoordinates(cleanAddress(address))
+				.then(res => {
+
+					if (res.error || res.body.resourceSets[0].estimatedTotal === 0) {
+						console.log('bing fucked up');
+						getCoordinatesGoogle(cleanAddress(address))
+							.then(res => {
+								if (res.error || res.body.status === 'ZERO_RESULTS')
+									resolve(null);
+								else
+									resolve(loc.body.results[0].geometry.location);
+							})
+
+					} else {
+
+						const geocodeRes = res.body.resourceSets[0].resources[0];
+						resolve({
+							lat: geocodeRes.point.coordinates[0],
+							lng: geocodeRes.point.coordinates[1]
+						});
+
+					}
+				})
+		)
+	);
+
+	Promise.all(results).then(geoRes => 
+		res.json( 
+			geoRes.map(loc => loc ? loc : 'failed') 
+		)
+	);
+
+});
+
+app.post('/getColors', (req, res) => {
+	res.json(colorGen(parseInt(req.body.count)));
+})
+
 io.on('connection', function(socket){
-	socket.on('updateDatabase', function(path, data) {
-		var curr = database.ref(path[0]);
-		for (var i = 1; i < path.length; i++) {
-			curr = curr.child(path[i]);
-		}
-		curr.update(data);
-	})
-
-	socket.on('setDatabase', function(path, data) {
-		var curr = database.ref(path[0]);
-		for (var i = 1; i < path.length; i++) {
-			curr = curr.child(path[i]);
-		}
-		curr.set(data);
-	})
-
-	socket.on('getDatabase', function(path) {
-		var curr = database.ref(path[0]);
-		for (var i = 1; i < path.length; i++) {
-			curr = curr.child(path[i]);
-		}
-		curr.on('value', function(snap) {
-			if (snap.val()) {
-				socket.emit('getDatabaseSuccess', snap.val());
-			}
-		});
-	})
 
   socket.on('createAdmin', function(userID, _email, _accountPassword) {
     adminInfo.child(userID).update({email: _email, accountPassword: _accountPassword});
@@ -219,122 +252,6 @@ io.on('connection', function(socket){
   socket.on('createDeliverer', function(userID, _email) {
     deliverInfo.child(userID).set({email: _email});
   })
-
-  socket.on('bruhAmIAdminOrNot', function(userID) {
-    adminInfo.once('value', function(snapshot) {
-      socket.emit('youAreNotTheAdmin', Object.keys(snapshot.val()).includes(userID));
-    })
-  })
-
-  socket.on('checkRegularUser', function(email, password) {
-    adminInfo.once('value', function(snapshot) {
-      var admins = snapshot.val();
-      var isAdmin = false;
-      for (var adminUser of Object.values(admins)) {
-        if (email === adminUser.email) {
-          isAdmin = true;
-        }
-      }
-      var good = false;
-      for (key of Object.keys(admins)) {
-        if (admins[key].accountPassword === password && 'confirmedUsers' in admins[key] && admins[key].confirmedUsers.includes(email)) {
-          good = true;
-          break;
-        }
-      }
-      socket.emit('userRegistered', good, isAdmin);
-    })
-  });
-
-  socket.on('getCoordinates', function(address) {
-    var req = getCoordinatesGoogle(replaceAll(replaceAll(address, '#', ''), '/', ''));
-    req.end(function(res) {
-      if (res.error) {console.log(res.error);}
-      else {
-        socket.emit('coordinatesRes', res.body.results[0].geometry.location);
-      }
-    });
-  });
-	
-  socket.on('getCoordinatesMult', function(addresses) {
-		console.log('--RECEIVED coordinates mult: ' + addresses.length.toString() + ' addresses');
-
-    var results = addresses.map(function(address) {
-      return new Promise(function(resolve, reject) {
-        var req = getCoordinates(replaceAll(replaceAll(address, '#', ''), '/', ''));
-        req.end(function(res) {resolve(res); });
-        return req;
-      });
-		});
-    
-    Promise.all(results).then(function(result) {
-      var locations = [];
-			var _addresses = [];
-      var failedAddresses = [];
-      var confidences = {};
-			var s = null;
-			var ind = -1;
-      result.map(function(loc) {
-				ind++;
-				if (loc.error || loc.body.resourceSets[0].estimatedTotal === 0) {
-          failedAddresses.push(addresses[ind]);
-					return null;
-				} else {
-          var geocodeRes = loc.body.resourceSets[0].resources[0];
-          if (!confidences[geocodeRes.confidence]) {
-            confidences[geocodeRes.confidence] = 0;
-          } confidences[geocodeRes.confidence]++;
-					if (s === null) {
-						s = geocodeRes;
-					}
-					locations.push({
-            lat: geocodeRes.point.coordinates[0],
-            lng: geocodeRes.point.coordinates[1]
-          });
-					_addresses.push(addresses[ind]);
-	        return loc.body;
-				}
-			});
-      console.log('confidence', confidences);
-      if (failedAddresses.length == 0) {
-        console.log(TerminalColors.GREEN, '--API coordinates mult Success');
-        socket.emit('coordinatesMultRes', locations, _addresses);
-        console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
-      } else {
-        console.log(TerminalColors.YELLOW, `--API coordinates mult Bing API Failed ${_addresses.length}/${addresses.length} returned. Trying Google API`);
-        var googleResults = failedAddresses.map(function(address) {
-          return new Promise(function(resolve, reject) {
-            var req = getCoordinatesGoogle(replaceAll(replaceAll(address, '#', ''), '/', ''));
-            req.end(function(res) {resolve(res); });
-            return req;
-          });
-        });
-        Promise.all(googleResults).then(function(gresult) {
-					ind = -1;
-          let failedAddressesGoogle = [];
-          gresult.map(function(loc) {
-            ind++;
-            if (loc.error || loc.body.status === 'ZERO_RESULTS') {
-              failedAddressesGoogle.push(failedAddresses[ind]);
-              return null;
-            } else {
-              locations.push(loc.body.results[0].geometry.location);
-              _addresses.push(failedAddresses[ind]);
-              return loc.body;
-            }
-          });
-          if (failedAddressesGoogle.length == 0) {
-            console.log(TerminalColors.GREEN, '--API coordinates mult Success Google API');
-            console.log('--SEND coordinates mult: ' + locations.length.toString() + ' locations and ' + _addresses.length.toString() + ' addresses');
-          } else {
-            console.log(TerminalColors.RED, `--API coordinates mult Failed Google API ${_addresses.length}/${addresses.length} returned`);
-            socket.emit('displayMessageInPopup', `could not get the following addresses: ${failedAddressesGoogle.join('\n')}`);
-          }
-          socket.emit('coordinatesMultRes', locations, _addresses);
-        });
-      }
-    });
-  });
 
   socket.on('addAddresses', function(userID, locs, type) {
 		if (!type) type = 'patients';
@@ -422,10 +339,6 @@ io.on('connection', function(socket){
 				socket.emit('volunteerRes', null);
 			}
     })
-	})
-	
-	socket.on('getColors', function(count) {
-		socket.emit('colorsRes', colorGen(count));
 	})
 
   socket.on('getDistanceMatrix', function(userID, start) {
