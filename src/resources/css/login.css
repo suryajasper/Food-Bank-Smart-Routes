@@ -2,6 +2,9 @@ body {
   font-family: "Raleway", Arial, sans-serif;
 }
 
+h1 {letter-spacing: 6px}
+.w3-row-padding img {margin-bottom: 12px}
+
 /* Full-width input fields */
 input[type="text"],
 input[type="password"] {
