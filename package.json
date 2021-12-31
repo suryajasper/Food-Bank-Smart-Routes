@@ -5,7 +5,24 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
+    "start": "node ./server/endpoints.js",
+    "build": "webpack --mode production --config webpack.config.js",
+    "profile": "webpack --mode production --config webpack.profile.js",
+    "dev": "webpack serve --mode development --config webpack.dev.js --port 6969 --host localhost"
+  },
+  "stylelint": {
+    "extends": [
+      "stylelint-config-standard",
+      "stylelint-config-rational-order"
+    ]
+  },
+  "postcss": {
+    "plugins": {
+      "postcss-easings": {},
+      "postcss-custom-properties": {
+        "importFrom": "src/main.css"
+      }
+    }
   },
   "repository": {
     "type": "git",
@@ -18,6 +35,13 @@
   },
   "homepage": "https://github.com/suryajasper/Food-Bank-Smart-Routes#readme",
   "dependencies": {
+    "mithril": "^2.0.4",
+    "postcss": "^8.2.3",
+    "postcss-custom-properties": "^10.0.0",
+    "postcss-easings": "^3.0.1",
+    "postcss-loader": "^4.1.0",
+    "stylelint-config-rational-order": "^0.1.2",
+    "stylelint-config-standard": "^20.0.0",
     "body-parser": "^1.19.0",
     "crypto": "^1.0.1",
     "express": "^4.17.1",
@@ -33,5 +57,26 @@
     "socket.io": "^2.3.0",
     "unirest": "^0.6.0",
     "util": "^0.12.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@webpack-cli/init": "^1.1.1",
+    "babel-loader": "^8.2.2",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "compression-webpack-plugin": "^3.1.0",
+    "css-loader": "^5.0.1",
+    "eslint": "^7.17.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1",
+    "html-webpack-plugin": "^4.5.1",
+    "style-loader": "^2.0.0",
+    "tap": "^14.11.0",
+    "terser-webpack-plugin": "^5.0.3",
+    "webpack": "^5.11.1",
+    "webpack-bundle-analyzer": "^3.6.1",
+    "webpack-cli": "^4.3.1",
+    "webpack-deadcode-plugin": "^0.1.12",
+    "webpack-dev-server": "^3.11.1"
   }
 }
