@@ -14,14 +14,16 @@ export default class CSVSelector {
   }
 
   view(vnode) {
+
     if (vnode.attrs.matrix)
       return m('div', {class: 'centered', style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
         m(Popup, [
-          m('table', {class: 'columnPopupTable'},
+          m('table', {class: `columnPopupTable selecting-${this.addressType}`},
             m('tbody', vnode.attrs.matrix.map((rowData, row) => 
               m('tr', rowData.map((cell, col) => 
                 m('td', {
-                  class: `${this.selections[`${row},${col}`] ? 'selected-cell' : ''}`,
+                  class: `${this.selections[`${row},${col}`] ? `selected-cell ${this.selections[`${row},${col}`].type}` : ''}`,
+
                   onclick: e => {
 
                     const code = `${row},${col}`;
@@ -55,10 +57,21 @@ export default class CSVSelector {
                     if (resetAfter) this.start = null;
 
                   }
+
                 }, cell)
               ))
             ))
           ),
+
+          m('select', { 
+            class: 'select',
+            oninput: e => {
+              console.log(e.target.value);
+              this.addressType = e.target.value;
+            }
+          }, ['patients', 'volunteers'].map(name => 
+            m('option', { value: name }, name.toUpperCase())
+          )),
 
           m('button', { 
             disabled: Object.entries(this.selections).length === 0,

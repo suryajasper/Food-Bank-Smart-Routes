@@ -8,6 +8,7 @@ const addressSchema = mongoose.Schema({
     lat: Number,
     lng: Number,
   },
+  type: String,
 });
 
 module.exports = { Address: mongoose.model('Address', addressSchema), addressSchema };

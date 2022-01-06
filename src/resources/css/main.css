@@ -336,13 +336,21 @@ table.columnPopupTable td {
   transition: 0.5s;
 }
 
-table.columnPopupTable td.selected-cell {
+td.selected-cell.volunteers {
   background-color: green;
 }
 
-table.columnPopupTable td:hover {
+td.selected-cell.patients {
+  background-color: red;
+}
+
+table.columnPopupTable.selecting-volunteers td:hover {
   background-color: #a9caa0;
-  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+
+table.columnPopupTable.selecting-patients td:hover {
+  background-color: #caa0a0;
   transition: 0.5s;
 }
 
@@ -530,6 +538,15 @@ table.columnPopupTable td:hover {
   width: 100vw;
   height: 70vh;
   position: absolute;
+}
+
+select.select {
+  width: 100%;
+  margin: 5px;
+  height: 30px;
+}
+select.select > option {
+  font-family: inherit;
 }
 
 .address-view {

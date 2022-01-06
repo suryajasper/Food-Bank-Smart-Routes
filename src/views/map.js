@@ -9,7 +9,7 @@ export default class Map {
     // initialize google maps api
     this.google = null;
 
-    const loader = new Loader('', {});
+    const loader = new Loader('AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM', {});
     loader.load().then(gl => {
       this.google = gl; 
       this.iw = new this.google.maps.InfoWindow();
@@ -73,7 +73,7 @@ export default class Map {
     
     const marker = new this.google.maps.Marker(mapInit);
 
-    this.google.maps.event.addListener(marker, 'click', function() {
+    this.google.maps.event.addListener(marker, 'click', () => {
       this.iw.setContent(info);
       this.iw.open(map, marker);
     });
@@ -92,13 +92,19 @@ export default class Map {
       zoom: 4,
     });
 
+    const bounds = new google.maps.LatLngBounds();
+
     const colors = colorGen(addresses.length);
 
     addresses.forEach(add => {
 
-      const marker = this.createMarker({ coord: add.coord, map: this.map, color: 'blue', info: add.name });
+      const marker = this.createMarker({ coord: add.coord, map: this.map, color: add.type === 'patients' ? 'red' : 'green', info: add.name });
+
+      bounds.extend(add.coord);
 
     })
+
+    this.map.fitBounds(bounds);
 
     this.addCache = this.objectify(addresses);
 

@@ -111,6 +111,7 @@ app.post('/addAddresses', async (req, res) => {
               forUser: uid,
               name: addNames[i],
               coord: loc,
+              type: addresses[i].type,
             };
           });
           
