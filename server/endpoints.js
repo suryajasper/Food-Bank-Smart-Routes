@@ -24,6 +24,7 @@ let db = mongoose.connection;
 const { 
   getCoordinates, 
   getCoordinatesGoogle, 
+  getCoordinatesMult,
   getIndividualTimes,
   distanceMatrix,
   generateRouteTable, 
@@ -46,41 +47,7 @@ app.post('/getCoordinatesMult', (req, res) => {
 
 	const addresses = req.body.addresses;
 
-	console.log(`--RECEIVED coordinates mult: ${addresses.length} addresses`);
-
-	const results = addresses.map(address => 
-		new Promise((resolve, reject) => 
-			getCoordinates(cleanAddress(address))
-				.then(res => {
-
-					if (res.error || res.body.resourceSets[0].estimatedTotal === 0) {
-						console.log('bing fucked up');
-						getCoordinatesGoogle(cleanAddress(address))
-							.then(res => {
-								if (res.error || res.body.status === 'ZERO_RESULTS')
-									resolve(null);
-								else
-									resolve(loc.body.results[0].geometry.location);
-							})
-
-					} else {
-
-						const geocodeRes = res.body.resourceSets[0].resources[0];
-						resolve({
-							lat: geocodeRes.point.coordinates[0],
-							lng: geocodeRes.point.coordinates[1]
-						});
-
-					}
-				})
-		)
-	);
-
-	Promise.all(results).then(geoRes => 
-		res.json( 
-			geoRes.map(loc => loc ? loc : 'failed') 
-		)
-	);
+	getCoordinatesMult(addresses).then(res.json);
 
 });
 
@@ -134,11 +101,20 @@ app.post('/authenticateUser', (req, res) => {
 })
 
 app.post('/addAddresses', async (req, res) => {
-  const { uid, locs, type } = req.body;
+  const { uid, addresses } = req.body;
 
-  locs = locs.map(loc => Object.assign(loc, {type, forUser: uid}));
+  const addNames = addresses.map(add => add.address);
 
-  for (loc of locs) {
+  const locs = (await getCoordinatesMult(addNames))
+          .map((loc, i) => {
+            return {
+              forUser: uid,
+              name: addNames[i],
+              coord: loc,
+            };
+          });
+          
+  for (let loc of locs) {
     const address = new Address(loc);
     await address.save(); 
   }
@@ -166,8 +142,10 @@ app.post('/removeAddresses', (req, res) => {
 app.post('/getAddresses', (req, res) => {
   const { uid } = req.body;
 
-  Address.find({forUser: uid})
-    .then(res.status(201).json, res.status(400).send);
+  Address.find({forUser: uid}, (err, docs) => {
+    if (err) return res.status(400).send('failed');
+    return res.status(200).json(docs);
+  });
 })
 
 app.post('/getDistanceMatrix', async (req, res) => {

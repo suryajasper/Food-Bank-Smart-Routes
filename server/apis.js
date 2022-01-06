@@ -22,6 +22,48 @@ function getCoordinatesGoogle(address) {
   return req;
 }
 
+function getCoordinatesMult(addresses) {
+	return new Promise((resolve, reject) => {
+
+		console.log(`--RECEIVED coordinates mult: ${addresses.length} addresses`);
+	
+		const results = addresses.map(address => 
+			new Promise((resolve, reject) => 
+				getCoordinates(cleanAddress(address))
+					.then(res => {
+	
+						if (res.error || res.body.resourceSets[0].estimatedTotal === 0) {
+							console.log('bing fucked up');
+							getCoordinatesGoogle(cleanAddress(address))
+								.then(res => {
+									if (res.error || res.body.status === 'ZERO_RESULTS')
+										resolve(null);
+									else
+										resolve(loc.body.results[0].geometry.location);
+								})
+	
+						} else {
+	
+							const geocodeRes = res.body.resourceSets[0].resources[0];
+							resolve({
+								lat: geocodeRes.point.coordinates[0],
+								lng: geocodeRes.point.coordinates[1]
+							});
+	
+						}
+					})
+			)
+		);
+	
+		Promise.all(results).then(geoRes => 
+			resolve( 
+				geoRes.map(loc => loc ? loc : 'failed') 
+			)
+		);
+
+	});
+}
+
 function getIndividualTimes(_routes, addresses, matrix) {
 	var routes = [];
 	for (var i = 0; i < _routes.length; i++)
@@ -109,6 +151,7 @@ async function writeToSheet(id, table) {
 module.exports = { 
   getCoordinates, 
   getCoordinatesGoogle, 
+	getCoordinatesMult,
   getIndividualTimes,
   distanceMatrix, 
   distanceMatrix, 

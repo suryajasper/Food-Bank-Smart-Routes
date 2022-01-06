@@ -1,6 +1,8 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
+
 :root {
   --buttonSelectActiveBorderColor: rgb(70, 89, 255);
-  --background-color-light: white;
+  --background-color-light: rgb(147, 152, 238);
   --background-color-dark: #0f0f0f;
 }
 
@@ -8,18 +10,6 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-weight: 500;
   background-color: var(--background-color-light);
-}
-
-body.darkTheme {
-  background-color: var(--background-color-dark);
-}
-
-body.darkTheme {
-  color: white;
-}
-
-body.darkTheme button {
-  color: white;
 }
 
 body * {
@@ -62,11 +52,6 @@ body h3 {
   z-index: 1000;
   margin-top: 0;
   background-color: rgb(240, 239, 239);
-}
-
-body.darkTheme .popup {
-  background-color: rgb(36, 36, 36);
-  border: 3px solid rgb(146, 144, 144);
 }
 
 .overflowpopup {
@@ -227,27 +212,15 @@ button:not(.nobuttoncss), input[type=submit] {
   border-radius: 3px;
   font-size: 15px;
   background-color: rgb(168, 168, 168);
-} 
-
-body.darkTheme button:not(.nobuttoncss), body.darkTheme input[type=submit] {
-  background-color: rgb(65, 65, 65);
-  font-size: 1.1em;
-} 
-
-/*
-button.nobuttoncss {
-  border: none;
-  border-radius: 0px;
-  background-color: rgb(41, 41, 41);
-  color: white;
-  font-size: 4em;
-  cursor: pointer;
-  -webkit-transition: 1s;
+  transition: 0.5s;
 }
-button.nobuttoncss:hover {
-  background-color: rgb(48, 78, 38);
-  -webkit-transition: 1s;
-}*/
+
+button:disabled {
+  background-color: rgba(168, 168, 168, 0.4);
+  cursor: not-allowed;
+  transition: 0.5s;
+}
+
 a.warehouseAnchor {
   padding: 5px;
   border: none;
@@ -320,9 +293,6 @@ tr:nth-child(even) {
 .groupinputs {
   background-color: rgb(214, 214, 214);
 }
-body.darkTheme .groupinputs {
-  background-color: rgb(63, 63, 63);
-}
 .groupinputs input,
 h4 {
   display: inline-block;
@@ -347,16 +317,6 @@ button.switchActive {
   color: var(--buttonSelectActiveBorderColor);
 }
 
-body.darkTheme button.switchActive {
-  border-bottom: 2px solid rgb(43, 43, 43);
-  background-color: rgb(20, 20, 20);
-}
-body.darkTheme button.switchNotActive {
-  border: 2px solid rgb(43, 43, 43);
-  background-color: rgb(28, 28, 28);
-  color: rgb(66, 66, 66);
-}
-
 table.columnPopupTable {
   width: 100%;
   overflow-y: scroll;
@@ -376,9 +336,8 @@ table.columnPopupTable td {
   transition: 0.5s;
 }
 
-body.darkTheme table.columnPopupTable td {
-  border: 1px solid #ffffff;
-  background-color: #262626;
+table.columnPopupTable td.selected-cell {
+  background-color: green;
 }
 
 table.columnPopupTable td:hover {
@@ -483,12 +442,6 @@ table.columnPopupTable td:hover {
   right: 25px;
 }
 
-.map {
-  display: none;
-  width: 100vw;
-  height: 70%;
-}
-
 #routeTablePopup.popup {
   max-height: 90vh;
   overflow-y: scroll;
@@ -571,4 +524,102 @@ table.columnPopupTable td:hover {
 
 .marker-info-container {
   font-size: 15px;
+}
+
+.map {
+  width: 100vw;
+  height: 70vh;
+  position: absolute;
+}
+
+.address-view {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(82, 86, 173, 1);
+  transition: 0.5s;
+}
+
+.drag-area{
+  border: 2px dashed #fff;
+  height: 500px;
+  width: 700px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.address-view.active .drag-area {
+  border: 2px solid #fff;
+}
+.address-view.failed .drag-area {
+  border: 2px dashed #ff5858;
+}
+.address-view.active {
+  background: rgba(82, 86, 173, 0.5);
+  transition: 0.5s;
+}
+
+.address-view.hidden {
+  width: 170px;
+  height: 60px;
+  bottom: 0px;
+  left: 0px;
+  background: rgba(82, 86, 173, 0) !important;
+  transition: 0.5s;
+}
+.address-view.hidden .drag-area {
+  border-color: #ffffff00 !important;
+  transition: 0.5s;
+}
+.address-view.hidden .icon, .address-view.hidden header, .address-view.hidden span {
+  display: none;
+}
+.address-view.hidden .drag-area button {
+  /*position: absolute;
+  bottom: 5px;
+  left: 5px;*/
+  font-size: 15px;
+  transition: 0.5s;
+}
+
+.drag-area .icon{
+  font-size: 100px;
+  color: #fff;
+}
+.drag-area header{
+  font-size: 30px;
+  font-weight: 500;
+  color: #fff;
+}
+.drag-area span{
+  font-size: 25px;
+  font-weight: 500;
+  color: #fff;
+  margin: 10px 0 15px 0;
+}
+.drag-area button{
+  padding: 10px 25px;
+  font-size: 20px;
+  font-weight: 500;
+  border: none;
+  outline: none;
+  background: #fff;
+  color: #5256ad;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.drag-area img{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+}
+.drag-area .drag-drop-button {
+  width: 150px;
 }
