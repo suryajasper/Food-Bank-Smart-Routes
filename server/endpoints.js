@@ -32,6 +32,8 @@ const {
   init2D,
 } = require('./apis');
 
+const { cleanAddress } = require('./utils');
+
 app.post('/getCoordinates', (req, res) => {
 	console.log(req.body.address);
 	getCoordinatesGoogle(cleanAddress(req.body.address))
@@ -124,13 +126,14 @@ app.post('/addAddresses', async (req, res) => {
 })
 
 app.post('/updateAddress', (req, res) => {
-  Address.findByIdAndDelete(req.body.addressId, req.body.update)
-    .then(res.status(201).json, res.status(400).send);
+  Address.updateOne({ _id: req.body.addressId }, req.body.update)
+    .then(() => res.status(201).json(req.body.update), res.status(400).send);
 });
 
 app.post('/deleteAddress', (req, res) => {
+  console.log('--REMOVE', req.body.addressId);
   Address.findByIdAndDelete(req.body.addressId)
-    .then(res.status(201).send, res.status(400).send);
+    .then(() => res.status(201).json({id: req.body.addressId}), res.status(400).send);
 })
 
 app.post('/removeAddresses', (req, res) => {

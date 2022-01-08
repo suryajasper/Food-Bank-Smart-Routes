@@ -13,15 +13,37 @@ export default class Map {
     loader.load().then(gl => {
       this.google = gl; 
       this.iw = new this.google.maps.InfoWindow();
+
+      this.iw.addListener('domready', () => this.initInfoWin(vnode));
+
       m.redraw();
     });
 
+    this.iwInitialized = false;
+
     this.map = null;
 
-    this.update = vnode.attrs.update;
+    this.updates = vnode.attrs.updates;
     this.handlers = vnode.attrs.handlers;
     this.addCache = this.objectify([]);
+
+    this.shouldUpdate = false;
     
+  }
+
+  initInfoWin(vnode) {
+    document.querySelector('#addUpdateIn').onkeypress = e => {
+      if (e.key === 'Enter') {
+        this.updates.change(this.active.id, e.target.value, coord => { this.shouldUpdate = true; });
+      } else if (e.key === 'Escape') {
+        console.log('hi');
+        e.target.blur();
+      }
+    }
+
+    document.querySelector('#addDeleteButton').onclick = () => {
+      this.updates.remove(this.active.id);
+    }
   }
 
   objectify(addresses) {
@@ -35,8 +57,8 @@ export default class Map {
     return `
       <div class = "marker-info-container inline-children">
         ${prefaceLabel} <span class="hide-span"></span>
-        <input title = "Modify Address" class="hide-until-focus marker-info-input" value="${info}">
-        <div title = "Remove Address" class = "cancel-svg-container">
+        <input id = "addUpdateIn" title = "Modify Address" class="hide-until-focus marker-info-input" value="${info}">
+        <div id = "addDeleteButton" title = "Remove Address" class = "cancel-svg-container">
           <svg viewBox="0 0 24 24" class = "cancel-svg remove-address-button">
             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
           </svg>
@@ -64,7 +86,7 @@ export default class Map {
     return markerImage;
   }
   
-  createMarker({ coord, map, color, info }) {
+  createMarker({ id, coord, map, color }) {
     let mapInit = {
       position: coord,
       map: map,
@@ -74,8 +96,12 @@ export default class Map {
     const marker = new this.google.maps.Marker(mapInit);
 
     this.google.maps.event.addListener(marker, 'click', () => {
-      this.iw.setContent(info);
+      const add = this.addCache[id];
+
+      this.iw.setContent(this.createIwString(`<b>${add.type}: </b>`, add.name));
       this.iw.open(map, marker);
+
+      this.active = { id, marker };
     });
 
     return marker;
@@ -83,9 +109,9 @@ export default class Map {
 
   reloadMap(vnode) {
 
-    const { addresses, editable } = vnode.attrs;
+    const { addresses } = vnode.attrs;
 
-    console.log('reloading the map', document.querySelector('#shit'));
+    this.addCache = this.objectify(addresses);
 
     this.map = new this.google.maps.Map(document.querySelector('#shit'), {
       center: addresses[0].coord,
@@ -98,7 +124,12 @@ export default class Map {
 
     addresses.forEach(add => {
 
-      const marker = this.createMarker({ coord: add.coord, map: this.map, color: add.type === 'patients' ? 'red' : 'green', info: add.name });
+      const marker = this.createMarker({ 
+        id: add._id,
+        coord: add.coord, 
+        map: this.map, 
+        color: add.type === 'patients' ? 'red' : 'green',
+      });
 
       bounds.extend(add.coord);
 
@@ -106,14 +137,14 @@ export default class Map {
 
     this.map.fitBounds(bounds);
 
-    this.addCache = this.objectify(addresses);
+    this.shouldUpdate = false;
 
   }
 
   view(vnode) {
     let { addresses } = vnode.attrs;
 
-    if (this.google && addresses.length > 0 && addresses.length != this.cacheLength)
+    if (this.shouldUpdate || (this.google && addresses.length > 0 && addresses.length != this.cacheLength))
       this.reloadMap(vnode);
     
     return m('div', Object.assign(

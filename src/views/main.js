@@ -5,6 +5,7 @@ import CSVSelector from './csvselector';
 import Map from './map';
 
 import Cookies from '../utils/cookies';
+import { POST } from '../utils/utils';
 
 import '../resources/css/main.css';
 import '../resources/css/loginforeign.css';
@@ -24,36 +25,61 @@ export default class Main {
   }
 
   fetchAddresses() {
-    const uid = this.uid;
-
-    m.request({
-      method: 'POST',
-      url: 'http://localhost:4002/getAddresses',
-      headers: { 'Content-Type': 'application/json' },
-      body: { uid },
-    })
+    POST('http://localhost:4002/getAddresses', { uid: this.uid })
       .then(res => {
-        console.log('addresses', res);
         this.addresses = res;
         m.redraw();
       })
-      .catch(err => {
-        window.alert('none');
-      })
+      .catch(console.log);
   }
 
   addAddresses(addresses) {
     console.log('selected', addresses);
-    m.request({
-      method: 'POST',
-      url: 'http://localhost:4002/addAddresses',
-      headers: { 'Content-Type': 'application/json' },
-      body: { uid: this.uid, addresses },
-    })
+    POST('http://localhost:4002/addAddresses', { uid: this.uid, addresses })
       .then(this.fetchAddresses.bind(this))
-      .catch(err => {
-        console.error(err);
+      .catch(console.error)
+  }
+
+  findById(id) {
+    for (let i = 0; i < this.addresses.length; i++)
+      if (this.addresses[i]._id === id)
+        return i;
+  }
+
+  removeAddress(id) {
+
+    console.log('---DELETE', id);
+
+    POST('http://localhost:4002/deleteAddress', { addressId: id })
+      .then(_ => {
+        this.addresses.splice(this.findById(id), 1);
+        m.redraw();
       })
+      .catch(console.log)
+
+  }
+
+  changeAddress(id, newAdd, callback) {
+
+    console.log('---UPDATE', id, newAdd);
+
+    POST('http://localhost:4002/getCoordinates', { address: newAdd })
+      .then(coord => {
+
+        POST('http://localhost:4002/updateAddress', { 
+          uid: this.uid,
+          addressId: id, 
+          update: { name: newAdd, coord } 
+        })
+          .then(updated => {
+            const ind = this.findById(id);
+            this.addresses[ind] = Object.assign(this.addresses[ind], updated);
+            callback(updated.coord);
+          })
+          .catch(console.log)
+
+      })
+      .catch(console.log)
   }
 
   uploadCsv(file) {
@@ -118,6 +144,11 @@ export default class Main {
             ondragover  : this.handleDragOver  .bind(this),
             ondragleave : this.handleDragLeave .bind(this),
             ondrop      : this.handleDrop      .bind(this),
+          },
+
+          updates: {
+            change      : this.changeAddress   .bind(this),
+            remove      : this.removeAddress   .bind(this),
           }
         }),  
 
