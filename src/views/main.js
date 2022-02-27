@@ -4,6 +4,7 @@ import Papa from 'papaparse';
 import CSVSelector from './csvselector';
 import Map from './map';
 import IconButton from './icon-button';
+import RouteGenPopup from './route-generation-popup';
 
 import Cookies from '../utils/cookies';
 import { POST } from '../utils/utils';
@@ -22,6 +23,7 @@ export default class Main {
       active: false,
       matrix: null,
     };
+    this.routegenactive = false;
     this.addresses = [];
   }
 
@@ -159,7 +161,7 @@ export default class Main {
         m('div', {class: 'map-overlay'}, [
           m('div', {class: `tool-group ${this.addresses.length > 0 ? '' : 'hidden'}`}, [
             m(IconButton, {icon: 'build', title: 'Generate Routes', onclick: e => {
-              console.log('hi');
+              this.routegenactive = true;
             }}),
           ])
         ]),
@@ -189,6 +191,18 @@ export default class Main {
         ),      
 
       ]),
+
+      m(RouteGenPopup, {
+        active: this.routegenactive,
+
+        status: (res, params) => {
+          this.routegenactive = false;
+
+          if (res === 'success') {
+            console.log('got', params);
+          }
+        }
+      }),
 
       m(CSVSelector, {
         active: this.csv.active,
