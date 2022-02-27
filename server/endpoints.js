@@ -107,7 +107,10 @@ app.post('/addAddresses', async (req, res) => {
 
   const addNames = addresses.map(add => add.address);
 
-  const locs = (await getCoordinatesMult(addNames))
+  const coords = (await getCoordinatesMult(addNames));
+
+  const locs = coords
+          .filter(coord => !coord.err)
           .map((loc, i) => {
             return {
               forUser: uid,
@@ -119,10 +122,15 @@ app.post('/addAddresses', async (req, res) => {
           
   for (let loc of locs) {
     const address = new Address(loc);
-    await address.save(); 
+    await address.save();
   }
   
-  res.status(201).send(`added ${locs.length} addresses`);
+  res.status(201).json({
+    status: `added ${locs.length} addresses`,
+    failed: coords
+              .filter(coord => coord.err)
+              .map(coord => coord.address),
+  });
 })
 
 app.post('/updateAddress', (req, res) => {
@@ -152,13 +160,14 @@ app.post('/getAddresses', (req, res) => {
   });
 })
 
-app.post('/getDistanceMatrix', async (req, res) => {
-  const { uid, start } = req.body;
+async function getDistanceMatrix({ uid, start }) {
 
   const cachedMatrix = await CalcCache.findOne({forUser: uid}).exec();
-  if (cachedMatrix) {
-    res.json(cachedMatrix);
-  } else {
+
+  if (cachedMatrix)
+    return cachedMatrix;
+  
+  else {
 
     let addresses = (await Address
       .find({forUser: uid, type: 'patients'})
@@ -188,10 +197,11 @@ app.post('/getDistanceMatrix', async (req, res) => {
       }
     }
 
-    res.status(200).json(matrix);
+    return matrix;
 
   }
-})
+
+}
 
 app.post('/updateCalcCache', (req, res) => {
   const { uid, update } = req.body;

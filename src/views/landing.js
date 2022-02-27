@@ -37,7 +37,7 @@ export default class Landing {
         status: this.handleLogin.bind(this),
       }),
 
-      m("footer", {"class":"w3-container w3-padding-32 w3-light-grey w3-center w3-large"}, 
+      m("footer", {"class":"w3-container w3-padding-32 w3-center w3-large"}, 
         m("p",
           [
             "Created by ",

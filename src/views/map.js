@@ -114,6 +114,7 @@ export default class Map {
     this.addCache = this.objectify(addresses);
 
     this.map = new this.google.maps.Map(document.querySelector('#shit'), {
+      disableDefaultUI: true,
       center: addresses[0].coord,
       zoom: 4,
     });

@@ -33,13 +33,13 @@ function getCoordinatesMult(addresses) {
 					.then(res => {
 	
 						if (res.error || res.body.resourceSets[0].estimatedTotal === 0) {
-							console.log('bing fucked up');
+							
 							getCoordinatesGoogle(cleanAddress(address))
 								.then(res => {
 									if (res.error || res.body.status === 'ZERO_RESULTS')
-										resolve(null);
+										resolve({ err: true, address });
 									else
-										resolve(loc.body.results[0].geometry.location);
+										resolve(res.body.results[0].geometry.location);
 								})
 	
 						} else {
@@ -55,11 +55,7 @@ function getCoordinatesMult(addresses) {
 			)
 		);
 	
-		Promise.all(results).then(geoRes => 
-			resolve( 
-				geoRes.map(loc => loc ? loc : 'failed') 
-			)
-		);
+		Promise.all(results).then(resolve);
 
 	});
 }

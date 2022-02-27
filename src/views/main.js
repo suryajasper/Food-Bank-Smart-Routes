@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 
 import CSVSelector from './csvselector';
 import Map from './map';
+import IconButton from './icon-button';
 
 import Cookies from '../utils/cookies';
 import { POST } from '../utils/utils';
@@ -36,7 +37,10 @@ export default class Main {
   addAddresses(addresses) {
     console.log('selected', addresses);
     POST('http://localhost:4002/addAddresses', { uid: this.uid, addresses })
-      .then(this.fetchAddresses.bind(this))
+      .then(res => {
+        console.log(res);
+        this.fetchAddresses();
+      })
       .catch(console.error)
   }
 
@@ -131,14 +135,14 @@ export default class Main {
     return [
       m('div', {class: "w3-panel w3-center w3-opacity", style: "padding:12px 16px"}, [
         m('h1', 'Route Creation Service (V2)'),
-        m('div', {class: 'w3-bar w3-border'}, [
+        /*m('div', {class: 'w3-bar w3-border'}, [
           m('button', {class: 'w3-bar w3-button', onclick: e => { this.fetchAddresses(); }}, 'Get Shit'),
-        ])
+        ])*/
       ]),
 
-      m('div', { 'class': 'map' }, [
+      m('div', { 'class': 'map', style: {backgroundColor: 'gray'} }, [
 
-        m(Map, { 
+        /*m(Map, { 
           addresses: this.addresses,
           handlers: {
             ondragover  : this.handleDragOver  .bind(this),
@@ -150,7 +154,15 @@ export default class Main {
             change      : this.changeAddress   .bind(this),
             remove      : this.removeAddress   .bind(this),
           }
-        }),  
+        }),*/
+
+        m('div', {class: 'map-overlay'}, [
+          m('div', {class: `tool-group ${this.addresses.length > 0 ? '' : 'hidden'}`}, [
+            m(IconButton, {icon: 'build', title: 'Generate Routes', onclick: e => {
+              console.log('hi');
+            }}),
+          ])
+        ]),
 
         m('div', {'class': `address-view ${this.addresses.length > 0 ? 'hidden' : ''} ${this.drop.active ? 'active' : ''} ${this.drop.failed ? 'failed' : ''}`}, 
           m("div", {
@@ -165,10 +177,10 @@ export default class Main {
               m("i", {"class":"fas fa-cloud-upload-alt"})
             ),
             m("header", "No Addresses Stored"),
-            m("span", "Drag & Drop OR"),
+            m("span", m.trust("Drag & Drop <b><i>CSV</i></b> OR")),
             m("button", {class: 'drag-drop-button', onclick: e => {
               document.querySelector('input#csvIn').click();
-            }}, "Upload CSV"),
+            }}, this.addresses.length > 0 ? "Upload More" : "Browse"),
             m("input", {"type":"file","id":"csvIn", "hidden":"hidden", onchange: e => {
               this.drop.active = true;
               this.uploadCsv(e.target.files[0]);
