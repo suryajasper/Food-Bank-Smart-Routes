@@ -142,9 +142,9 @@ export default class Main {
         ])*/
       ]),
 
-      m('div', { 'class': 'map', style: {backgroundColor: 'gray'} }, [
+      m('div', { 'class': 'map', /*style: {backgroundColor: 'gray'}*/ }, [
 
-        /*m(Map, { 
+        m(Map, { 
           addresses: this.addresses,
           handlers: {
             ondragover  : this.handleDragOver  .bind(this),
@@ -156,7 +156,7 @@ export default class Main {
             change      : this.changeAddress   .bind(this),
             remove      : this.removeAddress   .bind(this),
           }
-        }),*/
+        }),
 
         m('div', {class: 'map-overlay'}, [
           m('div', {class: `tool-group ${this.addresses.length > 0 ? '' : 'hidden'}`}, [
@@ -200,6 +200,12 @@ export default class Main {
 
           if (res === 'success') {
             console.log('got', params);
+
+            POST('http://localhost:4002/vrp', { uid: this.uid, params })
+              .then(res => {
+                console.log(res);
+              })
+              .catch(console.error)
           }
         }
       }),

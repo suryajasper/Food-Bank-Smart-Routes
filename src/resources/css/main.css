@@ -555,7 +555,7 @@ select.select > option {
 
 .map-overlay {
   width: 100%;
-  height: 100%;
+  height: 60px;
   position: absolute;
   padding: 8px;
 }

@@ -1,4 +1,5 @@
 const colorGen = require('iwanthue');
+const unirest = require('unirest');
 const { app, io } = require('./app');
 
 const TerminalColors = {
@@ -29,10 +30,9 @@ const {
   distanceMatrix,
   generateRouteTable, 
   writeToSheet,
-  init2D,
 } = require('./apis');
 
-const { cleanAddress } = require('./utils');
+const { cleanAddress, init2D } = require('./utils');
 
 app.post('/getCoordinates', (req, res) => {
 	console.log(req.body.address);
@@ -160,7 +160,7 @@ app.post('/getAddresses', (req, res) => {
   });
 })
 
-async function getDistanceMatrix({ uid, start }) {
+async function getDistanceMatrix({ uid, addresses }) {
 
   const cachedMatrix = await CalcCache.findOne({forUser: uid}).exec();
 
@@ -168,31 +168,31 @@ async function getDistanceMatrix({ uid, start }) {
     return cachedMatrix;
   
   else {
-
-    let addresses = (await Address
-      .find({forUser: uid, type: 'patients'})
-      .exec())
-      .concat([start])
-      .map(add => {
-        return {
-          latitude  : add.coord.lat,
-          longitude : add.coord.lng,
-        }
-      })
     
+    const coords = addresses.map(add => {
+      return {
+        latitude  : add.coord.lat,
+        longitude : add.coord.lng,
+      }
+    });
 
-    const MAX_BATCH_SIZE = 25;
-    const matrix = init2D(addresses.length, addresses.length);
+    const STRIDE = 25;
+    const N = coords.length;
 
-    for (let i = 0; i < addresses.length; i += MAX_BATCH_SIZE) {
-      for (let j = 0; j < addresses.length; j+= MAX_BATCH_SIZE) {
+    const matrix = init2D(N, N);
 
-        const res = await distanceMatrix(addresses.slice(i, i+MAX_BATCH_SIZE), addresses.slice(j, j+MAX_BATCH_SIZE));
-        const raw = res.resourceSets[0].resources[0].results.map(el => el.travelDuration);
+    for (let rStart = 0; rStart < N; rStart += STRIDE) {
+      for (let cStart = 0; cStart < N; cStart += STRIDE) {
 
-        for (let i2 = 0; i2 < i+MAX_BATCH_SIZE; i2++)
-          for (let j2 = 0; j2 < j+MAX_BATCH_SIZE; j2++)
-            matrix[i2][j2] = raw[i2*MAX_BATCH_SIZE+j2];
+        const res = await distanceMatrix(
+          coords.slice(rStart, rStart+STRIDE), 
+          coords.slice(cStart, cStart+STRIDE)
+        );
+        const flattened = res.body.resourceSets[0].resources[0].results.map(el => el.travelDuration);
+
+        for (let r = rStart; r < Math.min(N, rStart+STRIDE); r++)
+          for (let c = cStart; c < Math.min(N, cStart+STRIDE); c++)
+            matrix[r][c] = flattened[r*N+c];
 
       }
     }
@@ -213,6 +213,127 @@ app.post('/getCalcCache', (req, res) => {
   CalcCache.findOne({forUser: req.body.uid})
     .then(res.status(201).json, res.status(400).send);
 })
+
+app.post('/vrp', async (req, res) => {
+
+  let { uid, params } = req.body;
+
+  /* get addresses */
+  
+  let coord = await getCoordinatesGoogle(params.depotAddress);
+  coord = coord.body.results[0].geometry.location;
+  
+  const start = { 
+    name: params.depotAddress, 
+    coord,
+  };
+  
+  let addresses = (await Address
+    .find({forUser: uid, type: 'patients'})
+    .exec())
+    .concat([start]);
+  
+  let formattedAddresses = addresses.map(add => add.name);
+
+  /* clean & verify parameters */
+
+  let matrix = await CalcCache.findOne({forUser: uid}).exec();
+
+  console.log(matrix ? '--USING CACHED MATRIX' : '--GENERATING DISTANCE MATRIX');
+
+  if (!matrix) {
+    
+    matrix = await getDistanceMatrix({uid, addresses});
+
+    console.log('matrix', matrix);
+  }
+
+  if (req.body.params.useDriversStored) {
+    params.numDeliv = await Address.countDocuments({ forUser: uid, type: 'volunteers' }).exec();
+    if (params.numDeliv == 0) return res.status(400).send('failed'); 
+  }
+
+  /* send vrp request */
+
+  console.log('--GET VRP request');
+
+  const vrpReq = unirest("POST", 'http://104.198.222.54:4003/vrp');
+  vrpReq.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
+  vrpReq.send(
+    JSON.stringify({ 
+      matrix, 
+      options: Object.assign(params, { formattedAddresses }) 
+    })
+  );
+
+  vrpReq.then(response => {
+    if (response.body.error)
+      console.log(TerminalColors.RED, 'VRP failed: ' + response.body.error);
+
+    console.log(response.body);
+    let table = generateRouteTable(response.body, false);
+    console.log(table);
+    return res.status(200).json(table);
+  })
+
+})
+
+
+async function vrp(body) {
+
+  let { uid, params } = body;
+
+  /* clean & verify parameters */
+
+  let matrix = await CalcCache.findOne({forUser: uid}).exec();
+
+  console.log(matrix ? '--USING CACHED MATRIX' : '--GENERATING DISTANCE MATRIX');
+
+  if (!matrix) {
+    let coord = await getCoordinatesGoogle(params.depotAddress);
+    coord = coord.body.results[0].geometry.location;
+
+    const start = { 
+      name: params.depotAddress, 
+      coord,
+    };
+    
+    matrix = await getDistanceMatrix({uid, start});
+    console.log('matrix', matrix);
+  }
+
+  if (req.body.params.useDriversStored) {
+    params.numDeliv = Address.countDocuments({ forUser: uid, type: 'volunteers' }).exec();
+    if (params.numDeliv == 0) return 'drivers failed'; //res.status(400).send('failed'); 
+  }
+
+  /* send vrp request */
+
+  const vrpReq = unirest("POST", 'http://104.198.222.54:4003/vrp');
+  console.log('--GET VRP request');
+
+  vrpReq.headers({'Accept': 'application/json', 'Content-Type': 'application/json'});
+  vrpReq.send(JSON.stringify({ matrix, options: params }));
+  vrpReq.then(response => {
+    if (response.body.error)
+      console.log(TerminalColors.RED, 'VRP failed: ' + response.body.error);
+
+    let table = generateRouteTable(response.body, false);
+    console.log(table);
+    return table; //res.status(200).json(table);
+  })
+}
+/*
+vrp({
+  uid: '61cd3d7d42f74ef8ad1f3114', 
+  params: {
+    "depotAddress": "1 Dr Carlton B Goodlett Pl #168, San Francisco, CA 94102",
+    "maxTravelTime": "89",
+    "maxDestinations": "10",
+    "numDeliv": "10",
+    "useDriversStored": true
+  }
+}).then(console.log).catch(console.error);*/
 
 io.on('connection', function(socket) {
 	

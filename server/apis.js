@@ -7,19 +7,16 @@ const { replaceAll, maxLength, cleanAddress } = require('./utils');
 function getCoordinates(address) {
   address = replaceAll(address, ' ', '%20');
   // var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
-  var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AoU-UkBigtGZIorCXRzwbHH48O4npDlzC2Axe8JxG-fXrYYFxbtaBnNynVTNiZMg &maxResults=1`;
-  var unirest = require("unirest");
-  var req = unirest("GET", url);
-  return req;
+  const url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AoU-UkBigtGZIorCXRzwbHH48O4npDlzC2Axe8JxG-fXrYYFxbtaBnNynVTNiZMg&maxResults=1`;
+  return unirest("GET", url);
 }
 
 function getCoordinatesGoogle(address) {
-  address = replaceAll(address, ' ', '+');
-  var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
+  address = replaceAll( replaceAll(address, ' ', '+'), '#', '' );
+  const url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + address + '&key=AIzaSyB874rZyp7PmkKpMdfpbQfKXSSLEJwglvM';
+	console.log(url);
   // var url = `http://dev.virtualearth.net/REST/v1/Locations/${address}?o=json&key=AuF1WYMy__BfekWEqNljvS73rPTAGrzzMslz4xQcQNh_8z8yq9EoeCMVVv5CVt7R `;
-  var unirest = require("unirest");
-  var req = unirest("GET", url);
-  return req;
+  return unirest("GET", url);
 }
 
 function getCoordinatesMult(addresses) {
@@ -75,19 +72,20 @@ function getIndividualTimes(_routes, addresses, matrix) {
 	return routes;
 }
 
-function distanceMatrix(pLoc, vLoc) {
+function distanceMatrix(patientAddresses, patientAddresses2) {
+	
+	const url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?key=AoU-UkBigtGZIorCXRzwbHH48O4npDlzC2Axe8JxG-fXrYYFxbtaBnNynVTNiZMg';
 
-	const parseLocs = locs => locs.map(loc => `${loc.lat},${loc.lng}`).join(';');
+	return unirest
+					.post(url)
+					.header('Accept', 'application/json')
+					.send(JSON.stringify({
+						'units': 'imperial',
+						'origins': patientAddresses,
+						'destinations': patientAddresses2,
+						'travelMode': 'driving'
+					}));
 
-	const req = unirest("GET", 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix');
-	req.body({
-		'units': 'imperial',
-		'key': 'AoU-UkBigtGZIorCXRzwbHH48O4npDlzC2Axe8JxG-fXrYYFxbtaBnNynVTNiZMg ',
-		'origins': parseLocs(patientAddresses),
-		'destinations': parseLocs(patientAddresses2),
-		'travelMode': 'driving'
-	});
-	return req;
 }
 
 function generateRouteTable(sol, shouldGenerateTravelTimes) {
