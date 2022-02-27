@@ -8,4 +8,20 @@ function POST(url, body) {
   })
 }
 
-export { POST };
+const ldb = {
+  set(title, data) {
+    if (typeof data === 'object')
+      data = JSON.stringify(data);
+    
+    window.localStorage.setItem(title, data);
+  },
+
+  get(title) {
+    const stored = window.localStorage.getItem(title);
+
+    try { return JSON.parse(stored); }
+    catch { return stored; }
+  },
+}
+
+export { POST, ldb };
