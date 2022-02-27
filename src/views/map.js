@@ -121,7 +121,7 @@ export default class Map {
 
     const bounds = new google.maps.LatLngBounds();
 
-    const colors = colorGen(addresses.length);
+    //const colors = colorGen(addresses.length);
 
     addresses.forEach(add => {
 

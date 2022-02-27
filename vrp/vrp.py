@@ -9,15 +9,15 @@ app = Flask(__name__)
 SERVER_NAME = 'suryajasper.com'
 
 @app.route('/')
-def hello_world():
-    return 'Hello, World!'
+def status():
+    return 'Active!'
 
 def create_data_model(matrix, num_vehicles, max_routes):
     """Stores the data for the problem."""
     data = {}
     data['distance_matrix'] = matrix
     data['num_vehicles'] = num_vehicles
-    data['depot'] = len(matrix)-1
+    data['depot'] = 0
     data['demands'] = [1 for x in range(len(matrix))]
     data['demands'][0] = 0
     data['vehicle_capacities'] = [max_routes for veh in range(num_vehicles)]
@@ -137,10 +137,11 @@ def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
 
 @app.route('/vrp',  methods=['POST', 'GET'])
 def vrp():
-	if request.method == 'POST':
-		json = request.get_json(force=True)
-		response = main(json['matrix'], int(json['options']['numDeliv']), json['options']['formattedAddresses'], int(json['options']['maxTravelTime']), int(json['options']['maxDestinations']))
-		return response
+    if request.method == 'POST':
+        json = request.get_json(force=True)
+        print(json)
+        response = main(json['matrix'], int(json['options']['numDeliv']), json['options']['formattedAddresses'], int(json['options']['maxTravelTime']), int(json['options']['maxDestinations']))
+        return response
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', port=4003)

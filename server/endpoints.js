@@ -145,10 +145,10 @@ app.post('/deleteAddress', (req, res) => {
 })
 
 app.post('/removeAddresses', (req, res) => {
-  const { uid, type } = req.body;
 
-  Address.deleteMany({type, forUser: uid})
-    .then(res => res.status(201).send(`deleted ${res.deletedCount} addresses`), res.status(400).send);
+  Address.deleteMany({forUser: req.body.uid})
+    .then(delres => res.status(201).send(`deleted ${delres.deletedCount} addresses`), res.status(400).send);
+
 })
 
 app.post('/getAddresses', (req, res) => {
@@ -228,10 +228,9 @@ app.post('/vrp', async (req, res) => {
     coord,
   };
   
-  let addresses = (await Address
-    .find({forUser: uid, type: 'patients'})
-    .exec())
-    .concat([start]);
+  let addresses = [start].concat(
+    await Address.find({forUser: uid, type: 'patients'}).exec()
+  );
   
   let formattedAddresses = addresses.map(add => add.name);
 
@@ -241,11 +240,19 @@ app.post('/vrp', async (req, res) => {
 
   console.log(matrix ? '--USING CACHED MATRIX' : '--GENERATING DISTANCE MATRIX');
 
-  if (!matrix) {
+  if (matrix)
+    matrix = JSON.parse(Buffer.from(matrix.matrix, 'base64').toString('ascii'));
+
+  else {
     
     matrix = await getDistanceMatrix({uid, addresses});
 
-    console.log('matrix', matrix);
+    const matrixSave = new CalcCache({ 
+      forUser: uid,
+      matrix: Buffer.from(JSON.stringify(matrix)).toString('base64'),
+    });
+    await matrixSave.save();
+    
   }
 
   if (req.body.params.useDriversStored) {
@@ -267,12 +274,14 @@ app.post('/vrp', async (req, res) => {
   );
 
   vrpReq.then(response => {
-    if (response.body.error)
+    if (response.body.error) {
       console.log(TerminalColors.RED, 'VRP failed: ' + response.body.error);
+      return res.status(400).send('VRP failed');
+    }
 
-    console.log(response.body);
+    console.log(TerminalColors.GREEN, '--SENDING VRP SUCCESS');
+
     let table = generateRouteTable(response.body, false);
-    console.log(table);
     return res.status(200).json(table);
   })
 

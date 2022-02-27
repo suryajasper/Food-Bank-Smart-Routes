@@ -1,10 +1,11 @@
 import m from 'mithril';
 
-function POST(url, body) {
+function POST(endpoint, body) {
   return m.request({
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    url, body,
+    headers: { 'Content-Type': 'application/json' }, 
+    url: `http://localhost:4002${endpoint}`,
+    body,
   })
 }
 
@@ -24,4 +25,20 @@ const ldb = {
   },
 }
 
-export { POST, ldb };
+function parseSheetsObj(table) {
+
+  let body = [table.headers];
+
+  for (let row of table.body) {
+    let newRow = [];
+    for (let headerEl of table.headers) {
+      newRow.push(row[headerEl] ? row[headerEl] : '');
+    }
+    body.push(newRow);
+  }
+
+  return body;
+  
+}
+
+export { POST, ldb, parseSheetsObj };

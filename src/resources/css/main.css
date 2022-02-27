@@ -534,7 +534,18 @@ table.columnPopupTable.selecting-patients td:hover {
 }
 
 .marker-info-container {
+  display: flex;
+  align-items: center;
   font-size: 15px;
+}
+
+.marker-info-container > * {
+  margin: 4px;
+}
+
+.marker-info-container > .marker-info-input {
+  width: 300px;
+  height: 30px;
 }
 
 select.select {
@@ -548,7 +559,7 @@ select.select > option {
 
 .map {
   width: 100vw;
-  height: 80vh;
+  height: 100vh;
   bottom: 0px;
   position: absolute;
 }
@@ -594,16 +605,16 @@ select.select > option {
 }
 
 .address-view.hidden {
-  width: 170px;
+  width: 70px;
   height: 60px;
-  bottom: 0px;
-  left: 0px;
+  top: 8px;
+  left: 4px;
   background: rgba(82, 86, 173, 0) !important;
   transition: 0.5s;
 }
 .address-view.hidden .drag-area {
   height: 50px;
-  float: bottom;
+  float: top;
   position: relative;
   border-color: #ffffff00 !important;
   transition: 0.5s;
@@ -612,11 +623,39 @@ select.select > option {
   display: none;
 }
 .address-view.hidden .drag-area button {
-  /*position: absolute;
-  bottom: 5px;
-  left: 5px;*/
   font-size: 15px;
+  height: 44px;
+  width: 44px;
+  border-radius: 32px;
+  padding: 0px;
+  margin: 0px;
+  /*background-color: rgba(0, 0, 0, 0.2);*/
+  box-shadow: -3px 3px 4px rgba(0, 0, 0, 0.37);
   transition: 0.5s;
+}
+
+.page-title-container {
+  top: 0px;
+  position: absolute;
+  width: 100vw;
+  z-index: 9999;
+  transition: 0.5s ease-out;
+}
+
+.page-title-container .page-title {
+  color: white;
+  margin: 20px 0px;
+  transition: 0.5s ease-out;
+}
+
+.page-title-container.hidden {
+  top: -100px;
+  transition: 0.5s ease-out;
+}
+
+.page-title-container.hidden .page-title {
+  color: gray;
+  transition: 0.5s ease-out;
 }
 
 .drag-area .icon{
@@ -653,4 +692,11 @@ select.select > option {
 }
 .drag-area .drag-drop-button {
   width: 150px;
+}
+
+.drag-area .drag-drop-button svg {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  padding-top: 8px;
 }

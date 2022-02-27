@@ -4,12 +4,7 @@ const { addressSchema } = require('./address');
 
 const calccacheSchema = mongoose.Schema({
   forUser: ObjectId,
-  matrix: [Number],
-  start: addressSchema,
-  routes: [{
-    time: Number,
-    route: [addressSchema],
-  }]
+  matrix: String,
 });
 
 module.exports = mongoose.model('CalcCache', calccacheSchema);

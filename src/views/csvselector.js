@@ -1,7 +1,7 @@
 import m from 'mithril';
 import Popup from './popup';
 
-export default class CSVSelector {
+class CSVSelector {
   reset() {
     this.start = null;
     this.selections = {};
@@ -97,3 +97,38 @@ export default class CSVSelector {
       );
   }
 }
+
+const TableView = {
+
+  view(vnode) {
+
+    if (vnode.attrs.matrix)
+      return m('div', {class: 'centered', style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
+        m(Popup, [
+          m('table', {class: `columnPopupTable`},
+            m('tbody', vnode.attrs.matrix.map(row => 
+              m('tr', row.map(cell => 
+                m('td', cell)
+              ))
+            ))
+          ),
+
+          m('button', { 
+            onclick: e => { 
+              vnode.attrs.status('success') 
+            },
+          }, 'Upload to Spreadsheet'),
+
+          m('button', { 
+            onclick: e => { 
+              vnode.attrs.status('cancelled'); 
+            } 
+          }, 'Cancel'),
+          
+        ])
+      );
+
+  }
+}
+
+export { TableView, CSVSelector };

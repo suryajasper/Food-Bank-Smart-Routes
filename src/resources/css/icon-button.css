@@ -4,8 +4,13 @@
   flex-direction: column;
   justify-content: left;
   left: 8px;
-  transition: 0.3s ease-out;
+  transition: 0.5s ease-out;
 }
+
+/*.tool-group:first-child {
+  display: block;
+  transition-delay: 5s;
+}*/
 
 .tool-container {
   display: flex;
@@ -28,7 +33,7 @@
   display: none;
   font-family: inherit;
   font-weight: bold;
-  color: rgb(68, 68, 68);
+  color: #424694;
   position: relative;
   margin: 0px 24px 0px 8px;
 }
@@ -42,12 +47,22 @@
   transition: 0.3s ease-out;
 }
 
+.tool-group.hidden > .tool-container:first-child {
+  visibility: hidden;
+}
+
+.tool-group > .tool-container:first-child {
+  visibility: visible;
+  transition-delay: 0.5s;
+}
+
 .tool {
   width: 44px;
   height: 44px;
   border-radius: 32px;
   cursor: pointer;
   fill: #333;
+  box-shadow: -3px 3px 4px rgba(0, 0, 0, 0.37);
   background-color: white;
 }
 
