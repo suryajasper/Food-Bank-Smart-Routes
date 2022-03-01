@@ -41,4 +41,53 @@ function parseSheetsObj(table) {
   
 }
 
-export { POST, ldb, parseSheetsObj };
+function isWhole(val) {
+  return parseInt(val) == val && val > 0;
+}
+
+class Vector2 {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  add(val) {
+    if (val instanceof Vector2)
+      return new Vector2(this.x + val.x, this.y + val.y);
+    else if (typeof val === 'number')
+      return new Vector2(this.x + val, this.y + val);
+  }
+  sub(val) {
+    if (val instanceof Vector2)
+      return new Vector2(this.x - val.x, this.y - val.y);
+    else if (typeof val === 'number')
+      return new Vector2(this.x - val, this.y - val);
+  }
+  mult(val) {
+    if (val instanceof Vector2)
+      return new Vector2(this.x * val.x, this.y * val.y);
+    else if (typeof val === 'number')
+      return new Vector2(this.x * val, this.y * val);
+  }
+  div(val) {
+    if (val instanceof Vector2)
+      return new Vector2(this.x / val.x, this.y / val.y);
+    else if (typeof val === 'number')
+      return new Vector2(this.x / val, this.y / val);
+  }
+  dot(vec) {
+    return this.x * vec.x + this.y + vec.y;
+  }
+
+  get xToY() {
+    return this.x / this.y;
+  }
+  get yToX() {
+    return this.y / this.x;
+  }
+  get length() {
+    return Math.sqrt(this.dot(this, this));
+  }
+}
+
+export { POST, ldb, parseSheetsObj, Vector2, isWhole };

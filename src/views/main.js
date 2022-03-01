@@ -62,7 +62,7 @@ export default class Main {
 
     console.log('---DELETE', id);
 
-    POST('/deleteAddress', { addressId: id })
+    POST('/deleteAddress', { addressId: id, uid: this.uid })
       .then(_ => {
         this.addresses.splice(this.findById(id), 1);
         m.redraw();
@@ -109,6 +109,7 @@ export default class Main {
 
   uploadCsv(file) {
     this.drop.active = false;
+
     if (file.type !== 'application/vnd.ms-excel') {
       this.drop.failed = true;
       return;
@@ -121,15 +122,34 @@ export default class Main {
         this.csv.matrix = e.data.filter(row => row.join('').length > 0);
         this.csv.active = true;
 
-        window.localStorage.setItem('csv', JSON.stringify(this.csv));
+        m.redraw();
+        ldb.set('csv', this.csv);
       }
     });
   }
 
+  fetchVrp(params) {
+    POST('/vrp', { uid: this.uid, params })
+      .then(res => {
+        console.log('--VRP', res);
+        this.routes = {
+          active: true,
+          matrix: parseSheetsObj(res),
+        }
+        m.redraw();
+      })
+      .catch(console.error)
+  }
+
   oninit(vnode) {
 
-    /*this.routes.matrix = parseSheetsObj(ldb.get('vrpSave'));
-    this.routes.active = true;*/
+    // this.routes.matrix = parseSheetsObj(ldb.get('vrpSave'));
+    // this.routes.active = true;
+    
+    // this.csv = ldb.get('csv');
+    // console.log(this.csv);
+
+    // this.routegenactive = true;
 
     this.uid = Cookies.get('uid');
     if (!this.uid) window.location.href = '/';
@@ -151,6 +171,7 @@ export default class Main {
 
   handleDrop(e) {
     e.preventDefault();
+    console.log('dropped');
     this.uploadCsv(e.dataTransfer.files[0]);
   }
 
@@ -226,15 +247,8 @@ export default class Main {
         status: (res, params) => {
           this.routegenactive = false;
 
-          if (res === 'success') {
-            console.log('got', params);
-
-            POST('/vrp', { uid: this.uid, params })
-              .then(res => {
-                console.log(res);
-              })
-              .catch(console.error)
-          }
+          if (res === 'success')
+            this.fetchVrp(params);
         }
       }),
 
@@ -256,7 +270,7 @@ export default class Main {
         matrix: this.routes.matrix,
 
         status: res => {
-          console.log(res);
+          this.routes.active = false;
         }
       })
 

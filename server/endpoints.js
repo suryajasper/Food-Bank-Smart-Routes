@@ -102,8 +102,14 @@ app.post('/authenticateUser', (req, res) => {
   })
 })
 
+function removeDistanceMatrix(uid) {
+  CalcCache.deleteOne({ forUser: uid }).exec();
+}
+
 app.post('/addAddresses', async (req, res) => {
   const { uid, addresses } = req.body;
+
+  removeDistanceMatrix(uid);
 
   const addNames = addresses.map(add => add.address);
 
@@ -134,19 +140,27 @@ app.post('/addAddresses', async (req, res) => {
 })
 
 app.post('/updateAddress', (req, res) => {
+
+  removeDistanceMatrix(req.body.uid);
   Address.updateOne({ _id: req.body.addressId }, req.body.update)
     .then(() => res.status(201).json(req.body.update), res.status(400).send);
+
 });
 
 app.post('/deleteAddress', (req, res) => {
+
   console.log('--REMOVE', req.body.addressId);
+  removeDistanceMatrix(req.body.uid);
   Address.findByIdAndDelete(req.body.addressId)
     .then(() => res.status(201).json({id: req.body.addressId}), res.status(400).send);
+
 })
 
 app.post('/removeAddresses', (req, res) => {
 
-  Address.deleteMany({forUser: req.body.uid})
+  const { uid } = req.body; 
+  removeDistanceMatrix(uid);
+  Address.deleteMany({forUser: uid})
     .then(delres => res.status(201).send(`deleted ${delres.deletedCount} addresses`), res.status(400).send);
 
 })
@@ -184,15 +198,17 @@ async function getDistanceMatrix({ uid, addresses }) {
     for (let rStart = 0; rStart < N; rStart += STRIDE) {
       for (let cStart = 0; cStart < N; cStart += STRIDE) {
 
-        const res = await distanceMatrix(
+        input = [
           coords.slice(rStart, rStart+STRIDE), 
           coords.slice(cStart, cStart+STRIDE)
-        );
+        ];
+
+        const res = await distanceMatrix(...input);
         const flattened = res.body.resourceSets[0].resources[0].results.map(el => el.travelDuration);
 
         for (let r = rStart; r < Math.min(N, rStart+STRIDE); r++)
           for (let c = cStart; c < Math.min(N, cStart+STRIDE); c++)
-            matrix[r][c] = flattened[r*N+c];
+            matrix[r][c] = flattened[r%STRIDE*input[1].length+c%STRIDE];
 
       }
     }
@@ -202,17 +218,6 @@ async function getDistanceMatrix({ uid, addresses }) {
   }
 
 }
-
-app.post('/updateCalcCache', (req, res) => {
-  const { uid, update } = req.body;
-
-  CalcCache.updateOne({forUser: uid}, update);
-})
-
-app.post('/getCalcCache', (req, res) => {
-  CalcCache.findOne({forUser: req.body.uid})
-    .then(res.status(201).json, res.status(400).send);
-})
 
 app.post('/vrp', async (req, res) => {
 
