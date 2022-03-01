@@ -16,7 +16,7 @@ class CSVSelector {
   view(vnode) {
 
     if (vnode.attrs.matrix)
-      return m('div', {class: 'centered', style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
+      return m('div', {style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
         m(Popup, [
           m('table', {class: `columnPopupTable selecting-${this.addressType}`},
             m('tbody', vnode.attrs.matrix.map((rowData, row) => 
@@ -81,6 +81,7 @@ class CSVSelector {
           m('button', { 
             disabled: Object.entries(this.selections).length === 0,
             onclick: e => { 
+              e.preventDefault();
               vnode.attrs.status('success', Object.values(this.selections)) 
               this.reset();
             },
@@ -88,6 +89,7 @@ class CSVSelector {
 
           m('button', { 
             onclick: e => { 
+              e.preventDefault();
               vnode.attrs.status('cancelled'); 
               this.reset();
             } 
@@ -103,7 +105,7 @@ const TableView = {
   view(vnode) {
 
     if (vnode.attrs.matrix)
-      return m('div', {class: 'centered', style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
+      return m('div', {style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
         m(Popup, [
           m('table', {class: `columnPopupTable`},
             m('tbody', vnode.attrs.matrix.map(row => 
@@ -115,12 +117,14 @@ const TableView = {
 
           m('button', { 
             onclick: e => { 
+              e.preventDefault();
               vnode.attrs.status('success') 
             },
           }, 'Upload to Spreadsheet'),
 
           m('button', { 
             onclick: e => { 
+              e.preventDefault();
               vnode.attrs.status('cancelled'); 
             } 
           }, 'Cancel'),

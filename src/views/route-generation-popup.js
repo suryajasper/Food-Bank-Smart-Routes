@@ -1,6 +1,6 @@
 import m from 'mithril';
 import Popup from './popup';
-import { ldb } from '../utils/utils';
+import { ldb, isWhole } from '../utils/utils';
 
 export default class RouteGenPopup {
   reset() {
@@ -19,17 +19,25 @@ export default class RouteGenPopup {
     }
   }
 
-  save() {
-    ldb.set('routegen-params', this.params);
-  }
-
   constructor(vnode) {
     this.reset();
   }
 
+  save() {
+    ldb.set('routegen-params', this.params);
+  }
+
+  validateParams() {
+    const p = this.params;
+    return p.depotAddress.length > 0 && 
+            isWhole(p.maxTravelTime) &&
+            isWhole(p.maxDestinations) &&
+           (isWhole(p.numDeliv) || p.useDriversStored);
+  }
+
   view(vnode) {
 
-    return m('div', {class: 'centered', style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
+    return m('div', {style: `display: ${vnode.attrs.active ? 'block': 'none'}`}, 
       m(Popup, [
         m('div', {'class':'center-outside'}, m('div', {'class':'center-div'}, m('form', [
           
@@ -97,14 +105,19 @@ export default class RouteGenPopup {
           ),
 
           m('button', { 'class':'cancel', onclick: e => {
+            e.preventDefault();
             this.reset();
             vnode.attrs.status('cancelled');
           } }, 'Cancel'),
 
-          m('button', { onclick: e => {
-            this.save();
-            vnode.attrs.status('success', this.params);
-          } }, 'Calculate')
+          m('button', { 
+            onclick: e => {
+              e.preventDefault();
+              this.save();
+              vnode.attrs.status('success', this.params);
+            },
+            disabled: !this.validateParams(),
+          }, 'Calculate')
 
         ])))
       ])

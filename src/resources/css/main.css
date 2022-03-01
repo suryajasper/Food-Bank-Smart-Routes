@@ -2,7 +2,8 @@
 
 :root {
   --buttonSelectActiveBorderColor: rgb(70, 89, 255);
-  --background-color-light: rgb(147, 152, 238);
+  --background-color-light: rgb(82, 86, 173);
+  --highlight-color-light: rgb(55, 59, 128);
   --background-color-dark: #0f0f0f;
 }
 
@@ -47,13 +48,12 @@ body h3 {
   margin-right: 6px;
 }
 .popup {
-  max-height: 70vh;
+  height: 100%;
   overflow-y: scroll;
   border: 3px solid black;
   border-radius: 4px;
   z-index: 1000;
   margin-top: 0;
-  background-color: rgb(240, 239, 239);
 }
 
 .overflowpopup {
@@ -294,7 +294,7 @@ tr:nth-child(even) {
   cursor: pointer;
 }
 .groupinputs {
-  background-color: rgb(214, 214, 214);
+  background-color: var(--highlight-color-light);
 }
 .groupinputs input,
 h4 {
@@ -324,7 +324,7 @@ table.columnPopupTable {
   width: 100%;
   overflow-y: scroll;
   overflow-x: scroll;
-  max-height: 70vh;
+  max-height: calc(70vh - 160px);
   display: block;
   font-family: arial, sans-serif;
   border-collapse: collapse;
@@ -333,28 +333,36 @@ table.columnPopupTable {
 table.columnPopupTable td {
   padding: 6px 3px 6px 3px;
   border: 1px solid black;
-  background-color: white;
+  background-color: rgba(0, 0, 0, 0.2);
   cursor: pointer;
   -webkit-transition: 0.5s;
   transition: 0.5s;
 }
 
 td.selected-cell.volunteers {
-  background-color: green;
+  background-color: rgba(112, 255, 73, 0.8);
 }
 
 td.selected-cell.patients {
-  background-color: red;
+  background-color: rgba(255, 68, 68, 0.8);
 }
 
 table.columnPopupTable.selecting-volunteers td:hover {
-  background-color: #a9caa0;
+  background-color: rgba(112, 255, 73, 0.5);
   transition: 0.5s;
 }
 
 table.columnPopupTable.selecting-patients td:hover {
-  background-color: #caa0a0;
+  background-color: rgba(255, 68, 68, 0.5);
   transition: 0.5s;
+}
+
+.popup button {
+  background-color: var(--highlight-color-light);
+}
+
+.popup button:disabled {
+  background-color: rgba(163, 163, 163, 0.4);
 }
 
 .selectContainer {
@@ -369,7 +377,7 @@ table.columnPopupTable.selecting-patients td:hover {
   height: 100%;
   margin-right: 20px;
   border-radius: 4px;
-  background-color: #757575;
+  background-color: #7575753d;
   outline: none;
   border: none;
 }
@@ -578,7 +586,7 @@ select.select > option {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(82, 86, 173, 1);
+  background: var(--background-color-light);
   transition: 0.5s;
 }
 
