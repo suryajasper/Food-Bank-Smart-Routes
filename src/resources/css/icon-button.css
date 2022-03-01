@@ -1,0 +1,89 @@
+.tool-group {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: left;
+  left: 8px;
+  transition: 0.5s ease-out;
+}
+
+/*.tool-group:first-child {
+  display: block;
+  transition-delay: 5s;
+}*/
+
+.tool-container {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 32px;
+  position: relative;
+  height: 44px;
+  width: 44px;
+  margin: 8px;
+}
+
+.tool-container:hover {
+  width: fit-content;
+}
+
+.tool-container .tool-title {
+  display: none;
+  font-family: inherit;
+  font-weight: bold;
+  color: #424694;
+  position: relative;
+  margin: 0px 24px 0px 8px;
+}
+
+.tool-container:hover .tool-title {
+  display: block;
+}
+
+.tool-group.hidden {
+  left: -80px;
+  transition: 0.3s ease-out;
+}
+
+.tool-group.hidden > .tool-container:first-child {
+  visibility: hidden;
+}
+
+.tool-group > .tool-container:first-child {
+  visibility: visible;
+  transition-delay: 0.5s;
+}
+
+.tool {
+  width: 44px;
+  height: 44px;
+  border-radius: 32px;
+  cursor: pointer;
+  fill: #333;
+  box-shadow: -3px 3px 4px rgba(0, 0, 0, 0.37);
+  background-color: white;
+}
+
+div.tool:hover {
+  background-color: #eee;
+}
+
+div.selected:hover {
+  background-color: #333;
+}
+
+div.tool svg {
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  padding-top: 8px;
+  fill: inherit;
+}
+
+.psuedo {
+  width: 5em;
+  height: 0.25em;
+}

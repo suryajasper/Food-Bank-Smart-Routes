@@ -9,8 +9,8 @@ app = Flask(__name__)
 SERVER_NAME = 'suryajasper.com'
 
 @app.route('/')
-def hello_world():
-    return 'Hello, World!'
+def status():
+    return 'Active!'
 
 def create_data_model(matrix, num_vehicles, max_routes):
     """Stores the data for the problem."""
@@ -137,10 +137,10 @@ def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
 
 @app.route('/vrp',  methods=['POST', 'GET'])
 def vrp():
-	if request.method == 'POST':
-		json = request.get_json(force=True)
-		response = main(json['matrix'], int(json['options']['delivererCount']), json['options']['formattedAddresses'], json['options']['maxTime'], json['options']['maxDest'])
-		return response
+    if request.method == 'POST':
+        json = request.get_json(force=True)
+        response = main(json['matrix'], int(json['options']['numDeliv']), json['options']['formattedAddresses'], int(json['options']['maxTravelTime']), int(json['options']['maxDestinations']))
+        return response
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', port=4003)

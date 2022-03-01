@@ -1,0 +1,710 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
+
+:root {
+  --buttonSelectActiveBorderColor: rgb(70, 89, 255);
+  --background-color-light: rgb(82, 86, 173);
+  --highlight-color-light: rgb(55, 59, 128);
+  --background-color-dark: #0f0f0f;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-weight: 500;
+  background-color: var(--background-color-light);
+}
+
+body * {
+  font-family: inherit;
+  font-weight: inherit;
+}
+
+body b {
+  font-weight: 800;
+}
+
+body h4 {
+  font-weight: 550;
+}
+
+body h3 {
+  font-weight:  650;
+}
+
+.center {
+  margin: auto;
+  text-align: center;
+  display: inline-block;
+}
+.centered {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.login-signup-container {
+  text-align: center;
+}
+.login-signup-container a {
+  margin-right: 6px;
+}
+.popup {
+  height: 100%;
+  overflow-y: scroll;
+  border: 3px solid black;
+  border-radius: 4px;
+  z-index: 1000;
+  margin-top: 0;
+}
+
+.overflowpopup {
+  overflow-y: scroll;
+  height: 70vh;
+}
+.popup * {
+  margin: 11px;
+}
+.center-outside {
+  text-align: center;
+}
+.center-div {
+  display: inline-block;
+  padding: 1em;
+  border-radius: 4px;
+}
+.inputfile {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.inputfile + label {
+  padding: 6px;
+  border-radius: 3px;
+  font-size: 1.25em;
+  font-weight: 700;
+  color: white;
+  background-color: rgb(70, 170, 77);
+  display: inline-block;
+  cursor: pointer;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+  background-color: rgb(43, 190, 53);
+}
+
+.inputfile:focus + label {
+  outline: 1px dotted #000;
+  outline: -webkit-focus-ring-color auto 5px;
+}
+input {
+  font-size: 15px;
+}
+input[type="text"],
+input[type="password"] {
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  background-color: rgb(184, 184, 184);
+  color: black;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+
+input[type="text"]:hover,
+input[type="password"]:hover {
+  background-color: rgb(101, 101, 101);
+  color: white;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+input[type="number"] {
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  background-color: rgb(184, 184, 184);
+  color: black;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+input[type="number"]:disabled {
+  color: #757575;
+  cursor: not-allowed;
+}
+input[type="number"]:not([disabled]):hover {
+  background-color: rgb(101, 101, 101);
+  color: white;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+input[type="number"][disabled]:hover {
+  background-color: rgb(184, 184, 184);
+}
+.bank {
+  border: 3px solid black;
+  border-radius: 3px;
+  padding: 6px;
+  margin: 6px;
+  display: inline-block;
+  background-color: rgb(157, 157, 157);
+}
+
+.vertical-center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+.addbutton {
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  background-color: rgb(55, 161, 123);
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+.addbutton:hover {
+  background-color: rgb(34, 147, 109);
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+.bankFood {
+  border: 2px solid black;
+  display: table;
+  border-radius: 2px;
+  background: rgb(162, 162, 162);
+  margin: 0px;
+  height: 50px;
+  line-height: 50px;
+  cursor: pointer;
+  width: 100%;
+  -webkit-transition: 0.7s;
+  transition: 0.7s;
+}
+.bankFood:hover {
+  background: rgb(147, 173, 149);
+  -webkit-transition: 0.7s;
+  transition: 0.7s;
+}
+.bankFood * {
+  margin-right: 5px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  display: inline-block;
+}
+.bankFood .vertical {
+  display: table-cell;
+  vertical-align: middle;
+}
+.bankFood img {
+  height: 50px;
+}
+
+
+button:not(.nobuttoncss), input[type=submit] {
+  margin: 5px;
+  padding: 5px;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 15px;
+  background-color: rgb(168, 168, 168);
+  transition: 0.5s;
+}
+
+button:disabled {
+  background-color: rgba(168, 168, 168, 0.4);
+  cursor: not-allowed;
+  transition: 0.5s;
+}
+
+a.warehouseAnchor {
+  padding: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  text-decoration: none;
+  color: black;
+  border-radius: 3px;
+  background-color: rgb(168, 168, 168);
+}
+.fill-outer {
+  width: 97vw;
+  background: rgb(173, 173, 173);
+}
+.fill {
+  width: 0%;
+  height: 10px;
+  background: rgb(242, 86, 86);
+  background-size: 0% 100%;
+  background-position: 0 100px;
+}
+.loginsignup {
+  border-radius: 3px;
+  background-color: white;
+  text-align: center;
+  padding: 25px;
+}
+.loginsignup * {
+  margin: 7px;
+}
+.loginsignup a {
+  text-align: center;
+}
+textarea {
+  border-radius: 3px;
+  background-color: rgb(163, 163, 163);
+  border: none;
+  padding: 5px;
+  min-width: 90%;
+  max-width: 90%;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+textarea:hover {
+  background-color: rgb(78, 78, 78);
+  color: white;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+
+/*table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}*/
+#deliveryMap {
+  width: 100vw;
+  height: 90vh;
+  cursor: pointer;
+}
+.groupinputs {
+  background-color: var(--highlight-color-light);
+}
+.groupinputs input,
+h4 {
+  display: inline-block;
+}
+
+button.switchNotActive {
+  border-radius: 0px;
+  margin: 0px;
+  border: 2px solid rgb(224, 224, 224);
+  background-color: rgb(224, 224, 224);
+  color: rgb(110, 110, 110);
+}
+
+button.switchActive {
+  border-radius: 0px;
+  margin: 0px;
+  border-top: 2px solid var(--buttonSelectActiveBorderColor);
+  border-right: 2px solid var(--buttonSelectActiveBorderColor);
+  border-left: 2px solid var(--buttonSelectActiveBorderColor);
+  border-bottom: 2px solid rgb(185, 185, 185);
+  background-color: rgb(185, 185, 185);
+  color: var(--buttonSelectActiveBorderColor);
+}
+
+table.columnPopupTable {
+  width: 100%;
+  overflow-y: scroll;
+  overflow-x: scroll;
+  max-height: calc(70vh - 160px);
+  display: block;
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+}
+
+table.columnPopupTable td {
+  padding: 6px 3px 6px 3px;
+  border: 1px solid black;
+  background-color: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+
+td.selected-cell.volunteers {
+  background-color: rgba(112, 255, 73, 0.8);
+}
+
+td.selected-cell.patients {
+  background-color: rgba(255, 68, 68, 0.8);
+}
+
+table.columnPopupTable.selecting-volunteers td:hover {
+  background-color: rgba(112, 255, 73, 0.5);
+  transition: 0.5s;
+}
+
+table.columnPopupTable.selecting-patients td:hover {
+  background-color: rgba(255, 68, 68, 0.5);
+  transition: 0.5s;
+}
+
+.popup button {
+  background-color: var(--highlight-color-light);
+}
+
+.popup button:disabled {
+  background-color: rgba(163, 163, 163, 0.4);
+}
+
+.selectContainer {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  width: 100%;
+  vertical-align: center;
+}
+
+.selectContainer > select {
+  height: 100%;
+  margin-right: 20px;
+  border-radius: 4px;
+  background-color: #7575753d;
+  outline: none;
+  border: none;
+}
+
+.routeUrlContainer {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  width: 200px;
+  height: 40px;
+}
+
+.routeUrl {
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  display: inline-block;
+  height: 100%;
+  color: white;
+  text-decoration: none;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  margin: 0px;
+  font-family: inherit;
+  background-color: #757575;
+}
+
+.routeUrl:hover {
+  background-color: #575757;
+}
+
+.copyButton {
+  height: 100%;
+  cursor: pointer;
+  margin: 0px;
+  background-color: #757575;
+  outline: none;
+  border: none;
+  padding: 8px;
+  border-radius: 0px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.copyButton:hover {
+  background-color: #575757;
+}
+
+.copyButtonSvg {
+  height: 100%;
+}
+
+
+.inline-children {
+  display: block;
+}
+
+.inline-children > * {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.addressCounts {
+  display: block;
+  position: relative;
+  width: 100vw;
+}
+
+.addressCounts > p {
+  position: relative;
+  font-size: 1.25em;
+  font-family: inherit;
+}
+
+.addressCounts > p:first-child {
+  float: left;
+  left: 5px;
+}
+.addressCounts > p:last-child {
+  float: right;
+  right: 25px;
+}
+
+#routeTablePopup.popup {
+  max-height: 90vh;
+  overflow-y: scroll;
+}
+
+.routeTablePopupTable {
+  position: relative;
+  width: 80vw;
+  overflow-y: scroll;
+  overflow-x: scroll;
+  max-height: 60vh;
+  display: block;
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+}
+
+.routeTablePopupTable td, th {
+  padding: 6px 3px 6px 3px;
+  border: 1px solid black;
+  background-color: white;
+  cursor: pointer;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+
+.routeTablePopupTable td:not(:first-child), th:not(:first-child) {
+  min-width: 150px;
+}
+
+.routeTablePopupTable th {
+  position: sticky;
+  top: 0;
+}
+
+.hide-until-focus {
+	border: 1px solid transparent;
+	border-radius: 2px !important;
+	font-variant-ligatures: no-contextual;
+	height: 20px;
+	line-height: 22px;
+	margin: 0;
+	min-width: 1px;
+	padding: 2px 3px;
+  outline: none;
+}
+
+.hide-until-focus:hover {
+  border: 1px solid #4f4f4f80;
+}
+
+.hide-until-focus:focus {
+  border: 1px solid blue;
+}
+
+.hide-span {
+  font: inherit;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  height: 0;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.cancel-svg-container {
+  height: 20px;
+  width: 20px;
+  margin-right: 10px;
+}
+
+.cancel-svg {
+  height: 100%;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cancel-svg:hover {
+  fill: red;
+}
+
+.marker-info-container {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+}
+
+.marker-info-container > * {
+  margin: 4px;
+}
+
+.marker-info-container > .marker-info-input {
+  width: 300px;
+  height: 30px;
+}
+
+select.select {
+  width: 100%;
+  margin: 5px;
+  height: 30px;
+}
+select.select > option {
+  font-family: inherit;
+}
+
+.map {
+  width: 100vw;
+  height: 100vh;
+  bottom: 0px;
+  position: absolute;
+}
+
+.map-overlay {
+  width: 100%;
+  height: 60px;
+  position: absolute;
+  padding: 8px;
+}
+
+.address-view {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-color-light);
+  transition: 0.5s;
+}
+
+.drag-area{
+  border: 2px dashed #fff;
+  height: 500px;
+  width: 700px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.address-view.active .drag-area {
+  border: 2px solid #fff;
+}
+.address-view.failed .drag-area {
+  border: 2px dashed #ff5858;
+}
+.address-view.active {
+  background: rgba(82, 86, 173, 0.5);
+  transition: 0.5s;
+}
+
+.address-view.hidden {
+  width: 70px;
+  height: 60px;
+  top: 8px;
+  left: 4px;
+  background: rgba(82, 86, 173, 0) !important;
+  transition: 0.5s;
+}
+.address-view.hidden .drag-area {
+  height: 50px;
+  float: top;
+  position: relative;
+  border-color: #ffffff00 !important;
+  transition: 0.5s;
+}
+.address-view.hidden .icon, .address-view.hidden header, .address-view.hidden span {
+  display: none;
+}
+.address-view.hidden .drag-area button {
+  font-size: 15px;
+  height: 44px;
+  width: 44px;
+  border-radius: 32px;
+  padding: 0px;
+  margin: 0px;
+  /*background-color: rgba(0, 0, 0, 0.2);*/
+  box-shadow: -3px 3px 4px rgba(0, 0, 0, 0.37);
+  transition: 0.5s;
+}
+
+.page-title-container {
+  top: 0px;
+  position: absolute;
+  width: 100vw;
+  z-index: 9999;
+  transition: 0.5s ease-out;
+}
+
+.page-title-container .page-title {
+  color: white;
+  margin: 20px 0px;
+  transition: 0.5s ease-out;
+}
+
+.page-title-container.hidden {
+  top: -100px;
+  transition: 0.5s ease-out;
+}
+
+.page-title-container.hidden .page-title {
+  color: gray;
+  transition: 0.5s ease-out;
+}
+
+.drag-area .icon{
+  font-size: 100px;
+  color: #fff;
+}
+.drag-area header{
+  font-size: 30px;
+  font-weight: 500;
+  color: #fff;
+}
+.drag-area span{
+  font-size: 25px;
+  font-weight: 500;
+  color: #fff;
+  margin: 10px 0 15px 0;
+}
+.drag-area button{
+  padding: 10px 25px;
+  font-size: 20px;
+  font-weight: 500;
+  border: none;
+  outline: none;
+  background: #fff;
+  color: #5256ad;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.drag-area img{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+}
+.drag-area .drag-drop-button {
+  width: 150px;
+}
+
+.drag-area .drag-drop-button svg {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  padding-top: 8px;
+}
