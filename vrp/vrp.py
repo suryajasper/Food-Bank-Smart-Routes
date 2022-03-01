@@ -139,9 +139,8 @@ def main(matrix, num_vehicles, addresses, maxTime, maxDeliv):
 def vrp():
     if request.method == 'POST':
         json = request.get_json(force=True)
-        print(json)
         response = main(json['matrix'], int(json['options']['numDeliv']), json['options']['formattedAddresses'], int(json['options']['maxTravelTime']), int(json['options']['maxDestinations']))
         return response
 
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=4003)
+   app.run(host='localhost', port=4003)
