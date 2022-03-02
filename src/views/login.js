@@ -8,36 +8,55 @@ import '../resources/css/loginforeign.css';
 export default class Login {
   constructor(vnode) {
     this.status = vnode.attrs.status;
-    this.confirmPass = '';
     this.params = {
       username: '',
       email: '',
       password: '',
+      confirmPass: '',
     };
+    this.MIN_USERNAME_LEN = 6;
   }
 
   oninit(vnode) {
     if (Cookies.get('uid')) {
       this.status('success');
     }
+    else if (Cookies.get('logged out')) {
+      Cookies.erase('logged out');
+      window.location.reload();
+    }
   }
 
-  authenticateUser() {
-    console.log(this.params);
+  authenticateUser(vnode) {
+    if (this.password !== this.confirmPass) {
+      window.alert('Passwords don\'t match');
+      return;
+    }
+
     m.request({
       method: 'POST',
-      url: 'http://localhost:4002/authenticateUser',
+      url: `http://localhost:4002${vnode.attrs.signup ? '/createUser' : '/authenticateUser'}`,
       headers: {
         'Content-Type': 'application/json',
       },
       body: this.params,
-    }).then(res => {
-      console.log(res);
-      Cookies.set('uid', res.uid, 3);
-      this.status('success');
-    }).catch(err => {
-      window.alert('incorrect');
     })
+      .then(res => {
+        Cookies.set('uid', res.uid, 3);
+        this.status('success');
+      })
+      .catch(err => {
+        window.alert('incorrect username or password');
+      })
+  }
+
+  validateInputs(vnode) {
+    const p = this.params;
+
+    const splitEmail = p.email.split('@');
+
+    return ( splitEmail[1] && splitEmail[1].includes('.') ) &&
+           ( !vnode.attrs.signup || (p.password === p.confirmPass && p.username.length >= this.MIN_USERNAME_LEN) );
   }
 
   view(vnode) {
@@ -46,6 +65,22 @@ export default class Login {
 
         m("div", {"class":"container"}, [
           
+          vnode.attrs.signup ? [
+
+            m("label", {"for":"username"}, m("b", "Username")),
+
+            m("input", {
+              type: "text",
+              placeholder: `Username (${this.MIN_USERNAME_LEN}+ characters)`,
+              name: 'username',
+              required: "required",
+              oninput: e => {
+                this.params.username = e.target.value;
+              },
+            }),
+
+          ] : '',
+
           m("label", {"for":"email"}, m("b", "Email")),
 
           m("input", {
@@ -76,15 +111,15 @@ export default class Login {
               type: 'password',
               placeholder: 'Re-enter Password',
               oninput: e => {
-                this.confirmPass = e.target.value;
+                this.params.confirmPass = e.target.value;
               },
             }),
           ] : '',
           
           m("button", {
             class: "nobuttoncss", 
-            onclick: e => { e.preventDefault(); this.authenticateUser(); }, 
-            disabled: vnode.attrs.signup && this.params.password !== this.confirmPass,
+            onclick: e => { e.preventDefault(); this.authenticateUser(vnode); }, 
+            disabled: !this.validateInputs(vnode),
           }, vnode.attrs.signup ? 'Sign Up' : 'Log In'),
 
         ]),
