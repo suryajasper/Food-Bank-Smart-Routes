@@ -227,13 +227,22 @@ export default class Main {
           m('div', {class: `tool-group ${this.addresses.length > 0 ? '' : 'hidden'}`}, [
 
             m(IconButton, {icon: 'upload', title: 'Upload More Addresses', onclick: e => {
+              e.preventDefault();
               document.querySelector('#csvIn').click();
             }}),
             m(IconButton, {icon: 'trash', title: 'Clear All Addresses', onclick: e => {
+              e.preventDefault();
               this.removeAllAddresses();
             }}),
             m(IconButton, {icon: 'build', title: 'Generate Routes', onclick: e => {
+              e.preventDefault();
               this.routegenactive = true;
+            }}),
+            m(IconButton, {icon: 'logout', title: 'Log Out', onclick: e => {
+              e.preventDefault();
+              Cookies.erase('uid');
+              Cookies.set('logged out', 'yes', 1);
+              m.route.set('/');
             }}),
 
           ])
